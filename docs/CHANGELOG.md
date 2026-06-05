@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Bumped `Cirreum.Contracts` `1.0.0` → `1.1.0` and `Cirreum.Exceptions` `1.0.4` → `1.1.0`.
+  Together these bring `Cirreum.Result` `2.0.0` into Domain's dependency closure,
+  which fixes the `Result`/`Result<T>` System.Text.Json round-trip — the
+  `QueryCaching` intercept can now cache a `Result` through a serializing cache
+  provider without a serialized success deserializing back as a failure. Also
+  surfaces `Cirreum.Exceptions` `1.1.0`'s `IErrorState` opt-in, so a
+  `NotFoundException` failure carries its keys across the round-trip onto
+  `SurrogateResultException.State`. Domain's own public surface is unchanged;
+  consumers that use the re-exposed `Cirreum.Result` pagination types should review
+  the `Cirreum.Result` 2.0.0 migration notes.
+
 ## [1.0.0] - 2026-06-04
 
 ### Added
