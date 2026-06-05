@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-06-05
+
 ### Changed
 
 - Bumped `Cirreum.Contracts` `1.0.0` → `1.1.0` and `Cirreum.Exceptions` `1.0.4` → `1.1.0`.
