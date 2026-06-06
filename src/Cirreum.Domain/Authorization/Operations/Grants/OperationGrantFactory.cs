@@ -2,6 +2,7 @@ namespace Cirreum.Authorization.Operations.Grants;
 
 using Cirreum.Authorization.Operations.Grants.Caching;
 using Cirreum.Caching;
+using Cirreum.Caching.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
@@ -134,7 +135,7 @@ sealed class OperationGrantFactory(
 
 	// Cache configuration helpers —————————————————————————————
 
-	private CacheExpirationSettings BuildEffectiveCacheSettings(string domainFeature) {
+	private CacheExpirationPolicy BuildEffectiveCacheSettings(string domainFeature) {
 		// Cascade: domain override → grant-level default → root CacheSettings default
 		var defaults = rootCacheSettings.DefaultExpiration;
 
@@ -144,7 +145,7 @@ sealed class OperationGrantFactory(
 			expiration = ov.Expiration.Value;
 		}
 
-		return new CacheExpirationSettings(Expiration: expiration);
+		return new CacheExpirationPolicy(Expiration: expiration);
 	}
 
 	// Owner merge ————————————————————————————————————————————

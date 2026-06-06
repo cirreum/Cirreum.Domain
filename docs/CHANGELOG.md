@@ -9,6 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Code-first cache provider selection.** `AddCirreumCaching` now registers the settings + a no-op
+  default only; choose a provider explicitly via `AddInMemoryCacheService()` (or an infrastructure
+  package's `Add*CacheService`). A new public `AddCacheService(factory)` helper lets provider packages
+  set the active `ICacheService` (with telemetry + keyed consumers), *replacing* any prior registration,
+  so it works in any order after `AddCirreumCaching` / `AddDomainServices`. Also removes the internal
+  `QueryCachingDiagnostics` misconfiguration warning — obsolete now that there is no provider enum to
+  mismatch and no register-order trap. Re-pins `Cirreum.Contracts` `1.1.0` → `1.1.1`.
+- Renamed `CacheExpirationSettings` → `CacheExpirationPolicy` and adopted the
+  `Cirreum.Caching.Configuration` namespace for `CacheSettings` / `CacheExpirationOverride` (follows
+  `Cirreum.Contracts` 1.1.1).
+
+### Fixed
+
+- `InMemoryCacheService` opportunistically evicts expired entries via a single-sweeper pass (triggered on
+  cache misses), so a high-cardinality key that expires and is never re-requested no longer lingers
+  indefinitely. `RemoveByTagsAsync` now evicts in a single dictionary scan (was one full scan per tag),
+  with a null-guard and value-checked removal.
+
+> Breaking, shipped as a pre-adoption patch (1.1.1) via `-AllowBreakingPatch`. Apps that selected a cache
+> provider via `Cirreum:Cache:Provider` must now call the matching `Add*CacheService` (in-memory is
+> `AddInMemoryCacheService()`).
+
 ## [1.1.0] - 2026-06-05
 
 ### Changed

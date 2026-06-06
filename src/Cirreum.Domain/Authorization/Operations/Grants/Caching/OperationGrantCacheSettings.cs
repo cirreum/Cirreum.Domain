@@ -32,7 +32,7 @@ public sealed class OperationGrantCacheSettings {
 
 	/// <summary>
 	/// Absolute expiration for L2 grant cache entries. If <see langword="null"/>,
-	/// inherits from <see cref="Cirreum.Caching.CacheSettings.DefaultExpiration"/>.
+	/// inherits from <see cref="Cirreum.Caching.Configuration.CacheSettings.DefaultExpiration"/>.
 	/// </summary>
 	public TimeSpan? Expiration { get; set; }
 

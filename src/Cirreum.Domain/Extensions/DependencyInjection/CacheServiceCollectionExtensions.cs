@@ -1,6 +1,7 @@
 namespace Cirreum;
 
 using Cirreum.Caching;
+using Cirreum.Caching.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -9,24 +10,28 @@ using System.Linq;
 /// <summary>
 /// Extension methods for registering Cirreum's centralized cache infrastructure.
 /// </summary>
+/// <remarks>
+/// Provider selection is <em>code-first</em>: <see cref="AddCirreumCaching"/> registers the settings and a
+/// no-op default; call <see cref="AddInMemoryCacheService"/> (or an infrastructure package's
+/// <c>Add*CacheService</c>) to choose a provider. Each provider registration <em>replaces</em> the active
+/// <see cref="ICacheService"/> via <see cref="AddCacheService"/>, so it works in any order after
+/// <c>AddCirreumCaching</c> / <c>AddDomainServices</c>.
+/// </remarks>
 public static class CacheServiceCollectionExtensions {
 
 	/// <summary>
-	/// Registers the centralized <see cref="CacheSettings"/> and the
-	/// <see cref="ICacheService"/> implementation selected by
-	/// <see cref="CacheSettings.Provider"/>. Idempotent — safe to call
-	/// from multiple subsystem registrations.
+	/// Registers the centralized <see cref="CacheSettings"/>, the scoped <see cref="CacheKeyContext"/>, and a
+	/// no-op default <see cref="ICacheService"/> (caching disabled). Opt into a provider with
+	/// <see cref="AddInMemoryCacheService"/> or an infrastructure package's <c>Add*CacheService</c>.
+	/// Idempotent — safe to call from multiple subsystem registrations.
 	/// </summary>
 	/// <param name="services">The <see cref="IServiceCollection"/> to register with.</param>
 	/// <param name="configuration">
-	/// Optional <see cref="IConfiguration"/> used to bind settings from the
-	/// <c>Cirreum:Cache</c> section.
+	/// Optional <see cref="IConfiguration"/> used to bind settings from the <c>Cirreum:Cache</c> section.
 	/// </param>
 	/// <param name="configureCaching">
-	/// Optional delegate to override cache settings beyond what configuration provides.
-	/// Applied after binding from <paramref name="configuration"/>.
+	/// Optional delegate to override cache settings beyond what configuration provides. Applied after binding.
 	/// </param>
-	/// <returns>The <see cref="IServiceCollection"/> for chaining.</returns>
 	public static IServiceCollection AddCirreumCaching(
 		this IServiceCollection services,
 		IConfiguration? configuration = null,
@@ -34,121 +39,83 @@ public static class CacheServiceCollectionExtensions {
 
 		ArgumentNullException.ThrowIfNull(services);
 
-		// Idempotent — only register once
+		// Idempotent — only register the base once.
 		if (services.Any(sd => sd.ServiceType == typeof(CacheSettings))) {
 			return services;
 		}
 
 		var settings = new CacheSettings();
-
 		if (configuration is not null) {
-			var section = configuration.GetSection(CacheSettings.SectionPath);
-			section.Bind(settings);
+			configuration.GetSection(CacheSettings.SectionPath).Bind(settings);
 		}
 
 		configureCaching?.Invoke(settings);
 		services.AddSingleton(settings);
 
-		// Scoped cache key context for upstream pipeline stages (e.g., grant evaluation)
-		// to stamp key prefixes and extra tags consumed by QueryCaching.
+		// Scoped cache key context for upstream pipeline stages (e.g. grant evaluation) to stamp key
+		// prefixes and extra tags consumed by QueryCaching.
 		services.TryAddScoped<CacheKeyContext>();
 
-		// Register the cache service based on the provider
-		AddCacheableQueryService(services, settings);
-
-		// Wrap the concrete ICacheService with the telemetry decorator and
-		// register keyed instances for known subsystems (query-caching,
-		// grant-resolution). Skips decoration for NoCacheService.
-		DecorateWithInstrumentation(services);
+		// Default: no caching (safe). A provider's Add*CacheService call replaces these via AddCacheService.
+		services.TryAddSingleton<ICacheService, NoCacheService>();
+		services.TryAddKeyedSingleton<ICacheService>(CacheConsumers.QueryCaching, static (_, _) => new NoCacheService());
+		services.TryAddKeyedSingleton<ICacheService>(CacheConsumers.GrantResolution, static (_, _) => new NoCacheService());
 
 		return services;
 	}
 
-	private static void AddCacheableQueryService(
-		IServiceCollection services,
-		CacheSettings settings) {
-
-		// Use Replace for None/InMemory to enforce config over code registration.
-		// Use TryAdd for Distributed/Hybrid to allow infrastructure packages to
-		// provide their own implementation.
-		switch (settings.Provider) {
-			case CacheProvider.None:
-				services.Replace(ServiceDescriptor.Singleton<ICacheService, NoCacheService>());
-				break;
-
-			case CacheProvider.InMemory:
-				services.Replace(ServiceDescriptor.Singleton<ICacheService, InMemoryCacheService>());
-				break;
-
-			case CacheProvider.Distributed:
-			case CacheProvider.Hybrid:
-				// Infrastructure packages (Cirreum.QueryCache.Distributed, Cirreum.QueryCache.Hybrid)
-				// register the real implementation. Fall back to NoCacheService if not registered.
-				services.TryAddSingleton<ICacheService, NoCacheService>();
-				break;
-		}
-	}
-
 	/// <summary>
-	/// Wraps the concrete <see cref="ICacheService"/> with <see cref="InstrumentedCacheService"/>
-	/// and registers keyed instances for known subsystems. Skips wrapping entirely when the
-	/// concrete implementation is <see cref="NoCacheService"/> — there's no cache to observe.
+	/// Selects the single-instance in-memory cache as the active <see cref="ICacheService"/>
+	/// (replacing the no-op default). Suitable for Blazor WASM, development, testing, and single-instance hosts.
 	/// </summary>
-	private static void DecorateWithInstrumentation(IServiceCollection services) {
-		var descriptor = services.FirstOrDefault(d =>
-			d.ServiceType == typeof(ICacheService) && !d.IsKeyedService);
-		if (descriptor is null) {
-			return;
+	public static IServiceCollection AddInMemoryCacheService(this IServiceCollection services) =>
+		services.AddCacheService(static _ => new InMemoryCacheService());
+
+	/// <summary>
+	/// Sets <paramref name="implementationFactory"/> as the active <see cref="ICacheService"/> — wrapping it
+	/// in the telemetry decorator and registering the per-consumer keyed instances
+	/// (<see cref="CacheConsumers"/>). <em>Replaces</em> any previously registered cache service (the no-op
+	/// default or a prior provider), so it is safe to call after <c>AddCirreumCaching</c> /
+	/// <c>AddDomainServices</c> regardless of order. Intended for infrastructure cache-provider packages.
+	/// </summary>
+	public static IServiceCollection AddCacheService(
+		this IServiceCollection services,
+		Func<IServiceProvider, ICacheService> implementationFactory) {
+
+		ArgumentNullException.ThrowIfNull(services);
+		ArgumentNullException.ThrowIfNull(implementationFactory);
+
+		RemoveCacheServiceRegistrations(services);
+
+		// Raw (undecorated) implementation under a private marker so the decorator + keyed factories share
+		// one instance without re-resolving a captured descriptor.
+		services.AddSingleton(sp => new RawCacheServiceMarker(implementationFactory(sp)));
+
+		// Non-keyed: decorated with the "other" consumer tag.
+		services.AddSingleton<ICacheService>(static sp =>
+			new InstrumentedCacheService(sp.GetRequiredService<RawCacheServiceMarker>().Inner, "other"));
+
+		// Keyed: decorated with specific consumer tags so cache metrics can be sliced by subsystem.
+		services.AddKeyedSingleton<ICacheService>(CacheConsumers.QueryCaching, static (sp, _) =>
+			new InstrumentedCacheService(sp.GetRequiredService<RawCacheServiceMarker>().Inner, CacheConsumers.QueryCaching));
+		services.AddKeyedSingleton<ICacheService>(CacheConsumers.GrantResolution, static (sp, _) =>
+			new InstrumentedCacheService(sp.GetRequiredService<RawCacheServiceMarker>().Inner, CacheConsumers.GrantResolution));
+
+		return services;
+	}
+
+	private static void RemoveCacheServiceRegistrations(IServiceCollection services) {
+		for (var i = services.Count - 1; i >= 0; i--) {
+			var serviceType = services[i].ServiceType;
+			if (serviceType == typeof(ICacheService) || serviceType == typeof(RawCacheServiceMarker)) {
+				services.RemoveAt(i);
+			}
 		}
-
-		// NoCacheService is a pass-through — no telemetry needed.
-		// Register it directly for keyed consumers and skip the decorator.
-		if (descriptor.ImplementationType == typeof(NoCacheService)) {
-			services.TryAddKeyedSingleton<ICacheService>(CacheConsumers.QueryCaching, (_, _) => new NoCacheService());
-			services.TryAddKeyedSingleton<ICacheService>(CacheConsumers.GrantResolution, (_, _) => new NoCacheService());
-			return;
-		}
-
-		// For real cache implementations, replace the non-keyed registration with
-		// a decorator that adds telemetry, then register keyed instances that share
-		// the same inner implementation with per-consumer tags.
-		services.Remove(descriptor);
-
-		// Register the raw inner implementation under a private marker so the
-		// decorator and keyed factories can resolve it without re-parsing the
-		// original ServiceDescriptor (which is fragile across .NET versions).
-		services.Add(ServiceDescriptor.Describe(
-			typeof(RawCacheServiceMarker),
-			sp => new RawCacheServiceMarker(
-				(ICacheService)ActivatorUtilities.CreateInstance(
-					sp, descriptor.ImplementationType!)),
-			descriptor.Lifetime));
-
-		// Non-keyed: decorated with "other" consumer tag
-		services.Add(ServiceDescriptor.Describe(
-			typeof(ICacheService),
-			sp => new InstrumentedCacheService(
-				sp.GetRequiredService<RawCacheServiceMarker>().Inner, "other"),
-			descriptor.Lifetime));
-
-		// Keyed: decorated with specific consumer tags
-		services.TryAddKeyedSingleton<ICacheService>(
-			CacheConsumers.QueryCaching,
-			(sp, _) => new InstrumentedCacheService(
-				sp.GetRequiredService<RawCacheServiceMarker>().Inner,
-				CacheConsumers.QueryCaching));
-
-		services.TryAddKeyedSingleton<ICacheService>(
-			CacheConsumers.GrantResolution,
-			(sp, _) => new InstrumentedCacheService(
-				sp.GetRequiredService<RawCacheServiceMarker>().Inner,
-				CacheConsumers.GrantResolution));
 	}
 
 	/// <summary>
-	/// Internal marker that holds the raw (non-decorated) cache implementation.
-	/// Prevents the decorator from needing to re-resolve from a captured
-	/// <see cref="ServiceDescriptor"/>, which is fragile across .NET versions.
+	/// Internal marker that holds the raw (non-decorated) cache implementation so the decorator and keyed
+	/// factories share a single instance.
 	/// </summary>
 	private sealed class RawCacheServiceMarker(ICacheService inner) {
 		public ICacheService Inner => inner;

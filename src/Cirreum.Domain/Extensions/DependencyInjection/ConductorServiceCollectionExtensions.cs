@@ -1,6 +1,7 @@
 ﻿namespace Cirreum;
 
 using Cirreum.Caching;
+using Cirreum.Caching.Configuration;
 using Cirreum.Conductor;
 using Cirreum.Conductor.Configuration;
 using Cirreum.Extensions;

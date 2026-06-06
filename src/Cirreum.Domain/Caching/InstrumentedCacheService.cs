@@ -13,8 +13,7 @@ namespace Cirreum.Caching;
 /// <see langword="false"/> (hit). When the factory runs, it's a miss.
 /// </para>
 /// <para>
-/// Registered automatically by <see cref="CacheServiceCollectionExtensions"/> when
-/// the configured provider is not <see cref="CacheProvider.None"/>. Wrapping
+/// Wired by the caching registration for real cache providers. Wrapping
 /// <see cref="NoCacheService"/> is skipped — there's no cache to observe.
 /// </para>
 /// </remarks>
@@ -34,7 +33,7 @@ sealed class InstrumentedCacheService(ICacheService inner, string consumer) : IC
 	public async ValueTask<TResultValue> GetOrCreateAsync<TResultValue>(
 		string cacheKey,
 		Func<CancellationToken, ValueTask<TResultValue>> factory,
-		CacheExpirationSettings settings,
+		CacheExpirationPolicy settings,
 		string[]? tags = null,
 		CancellationToken cancellationToken = default) {
 

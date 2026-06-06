@@ -1,9 +1,9 @@
 namespace Cirreum.Conductor.Intercepts;
 
 using Cirreum.Caching;
+using Cirreum.Caching.Configuration;
 using Cirreum.Conductor;
 using Cirreum.Conductor.Configuration;
-using Cirreum.Conductor.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -29,9 +29,6 @@ sealed class QueryCaching<TOperation, TResultValue>
 		this._cacheSettings = cacheSettings;
 		this._cacheKeyContext = cacheKeyContext;
 		this._logger = logger;
-
-		QueryCachingDiagnostics.WarnIfMisconfigured(logger, cacheSettings, cache);
-
 	}
 
 	public async Task<Result<TResultValue>> HandleAsync(
@@ -70,7 +67,7 @@ sealed class QueryCaching<TOperation, TResultValue>
 		return result;
 	}
 
-	private CacheExpirationSettings BuildEffectiveSettings(TOperation request, string queryTypeName) {
+	private CacheExpirationPolicy BuildEffectiveSettings(TOperation request, string queryTypeName) {
 		var querySettings = request.CacheExpiration;
 		var cacheOptions = this._conductorSettings.Cache;
 
@@ -95,7 +92,7 @@ sealed class QueryCaching<TOperation, TResultValue>
 		localExpiration ??= defaults.LocalExpiration;
 		failureExpiration ??= defaults.FailureExpiration;
 
-		return new CacheExpirationSettings(
+		return new CacheExpirationPolicy(
 			Expiration: expiration,
 			LocalExpiration: localExpiration,
 			FailureExpiration: failureExpiration

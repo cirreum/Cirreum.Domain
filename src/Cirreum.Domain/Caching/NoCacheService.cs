@@ -1,15 +1,15 @@
 ﻿namespace Cirreum.Caching;
 
 /// <summary>
-/// No-op <see cref="ICacheService"/> that always invokes the factory directly,
-/// bypassing any caching. Registered automatically when <see cref="CacheSettings.Provider"/>
-/// is <see cref="CacheProvider.None"/>.
+/// No-op <see cref="ICacheService"/> that always invokes the factory directly, bypassing any caching.
+/// This is the default registered by <c>AddCirreumCaching</c> until a provider's <c>Add*CacheService</c>
+/// replaces it.
 /// </summary>
 public class NoCacheService : ICacheService {
 	public async ValueTask<TResultValue> GetOrCreateAsync<TResultValue>(
 		string cacheKey,
 		Func<CancellationToken, ValueTask<TResultValue>> factory,
-		CacheExpirationSettings settings,
+		CacheExpirationPolicy settings,
 		string[]? tags = null,
 		CancellationToken cancellationToken = default) {
 		// Always execute, never cache
