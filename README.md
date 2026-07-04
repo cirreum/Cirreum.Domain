@@ -19,6 +19,7 @@ Cirreum.Domain provides:
 - **Authorization** — `DefaultAuthorizationEvaluator`, the operation-grant accessor / factory / evaluator and grant-cache machinery, `ResourceAccessEvaluator`, `RoleDefinitionScanner`, and the FluentValidation validators (`AuthorizerBase`, the `Has*Validator` family)
 - **State** — `ScopedNotificationState`
 - **Presence** — `UserPresenceBuilder`
+- **Profile Enrichment** — `ClaimsUserProfileEnricher`, the default claims-based implementation of `Cirreum.Contracts`' `IUserProfileEnricher`
 - **RemoteServices** — `RemoteClient` and the connection base
 - **FileSystem** — `FileSystemUtils` and the CSV implementations
 - **Registration & extensions** — `AddDomainServices` (the default Conductor pipeline + authorization wiring), `ResultExtensions`, `SystemIOExtensions`, and format helpers
