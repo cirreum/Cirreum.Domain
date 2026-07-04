@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-04
+
 ### Added
 
 - **`ClaimsUserProfileEnricher`** — the default claims-based `IUserProfileEnricher` implementation, relocated here from `Cirreum.AuthenticationProvider` per [ADR-0026](../../../DevOps/docs/adr/0026-profile-enrichment-placement.md), alongside its interface counterpart `IUserProfileEnrichmentBuilder` (now in `Cirreum.Contracts 1.2.0`). Same reasoning as `UserPresenceBuilder`'s existing placement here: host-agnostic profile enrichment belongs in the spine, not the Authentication feature track.
