@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-07-04
+
 ### Fixed
 
 - **`IUserPresenceBuilder.AddPresenceService<T>(refreshInterval)` actually ships now.** This convenience registration (browser-only; registers the presence service scoped + configures `UserPresenceMonitorOptions.RefreshInterval` via `PostConfigure`) lived in legacy `Cirreum.Core 5.x` but was never ported when `IUserPresenceBuilder`/`UserPresenceBuilder` moved to Contracts/Domain during the foundation reset — silently blocking `Cirreum.Graph.Provider`'s cutover off `Cirreum.Core`. Ported verbatim as an extension method alongside `UserPresenceBuilder` (same namespace, same behavior).
