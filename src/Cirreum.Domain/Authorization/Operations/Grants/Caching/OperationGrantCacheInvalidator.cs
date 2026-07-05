@@ -9,11 +9,8 @@ using Microsoft.Extensions.DependencyInjection;
 /// Registered as a singleton.
 /// </summary>
 public sealed class OperationGrantCacheInvalidator(
-	[FromKeyedServices(CacheConsumers.GrantResolution)] ICacheService cacheService)
-	: IOperationGrantCacheInvalidator {
-
-	private readonly ICacheService _cacheService =
-		cacheService ?? throw new ArgumentNullException(nameof(cacheService));
+	[FromKeyedServices(CacheConsumers.GrantResolution)] ICacheService cacheService
+) : IOperationGrantCacheInvalidator {
 
 	/// <inheritdoc />
 	public ValueTask InvalidateCallerAsync(
@@ -22,7 +19,7 @@ public sealed class OperationGrantCacheInvalidator(
 
 		ArgumentException.ThrowIfNullOrWhiteSpace(callerId);
 		var tag = OperationGrantCacheKeys.CallerTag(callerId);
-		return this._cacheService.RemoveByTagAsync(tag, cancellationToken);
+		return cacheService.RemoveByTagAsync(tag, cancellationToken);
 	}
 
 	/// <inheritdoc />
@@ -32,6 +29,6 @@ public sealed class OperationGrantCacheInvalidator(
 
 		ArgumentException.ThrowIfNullOrWhiteSpace(feature);
 		var tag = OperationGrantCacheKeys.FeatureTag(feature);
-		return this._cacheService.RemoveByTagAsync(tag, cancellationToken);
+		return cacheService.RemoveByTagAsync(tag, cancellationToken);
 	}
 }
