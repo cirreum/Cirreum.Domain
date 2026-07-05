@@ -1,5 +1,6 @@
 namespace Cirreum;
 
+using Cirreum.Authentication.Events;
 using Cirreum.Authorization.Operations.Grants;
 using Cirreum.Authorization.Operations.Grants.Caching;
 using Cirreum.Caching;
@@ -135,6 +136,7 @@ public static class GrantServiceCollectionExtensions {
 		services.AddSingleton(settings);
 
 		services.TryAddSingleton<IOperationGrantCacheInvalidator, OperationGrantCacheInvalidator>();
+		services.TryAddEnumerable(ServiceDescriptor.Singleton<IAuthenticationEventHandler<GrantsInvalidated>, GrantsInvalidatedCacheHandler>());
 
 		// Safety net: ensure a cache service is available even if Conductor caching hasn't been
 		// configured yet. NoCacheService degrades gracefully — grants resolve on every request

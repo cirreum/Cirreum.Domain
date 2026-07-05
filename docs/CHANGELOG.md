@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `GrantsInvalidatedCacheHandler` — the framework-shipped consumer of Kernel's `GrantsInvalidated` auth event, registered automatically wherever grant authorization is registered. Calls `IOperationGrantCacheInvalidator.InvalidateCallerAsync` for the subject only — `InvalidateFeatureAsync` is a different, broader operation (evicts across every caller for a feature, not just this subject) and is never invoked from this handler. Part of ADR-0027's auth-event delivery wave; won't receive events until `Cirreum.Runtime.Authentication`'s in-process publisher (ADR-0025) ships.
+
 ## [1.2.0] - 2026-07-04
 
 ### Added
