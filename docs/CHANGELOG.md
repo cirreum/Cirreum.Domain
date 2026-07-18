@@ -9,9 +9,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Updated
+
+- Updated NuGet packages.
+
+## [1.2.5] - 2026-07-07
+
+### Updated
+
+- Updated NuGet packages. *(Entry backfilled — the 1.2.2–1.2.5 dependency-bump releases shipped
+  without changelog entries.)*
+
+## [1.2.4] - 2026-07-05
+
+### Updated
+
+- Updated NuGet packages. *(Entry backfilled.)*
+
+## [1.2.3] - 2026-07-05
+
+### Updated
+
+- Updated NuGet packages. *(Entry backfilled.)*
+
+## [1.2.2] - 2026-07-05
+
+### Updated
+
+- Updated NuGet packages. *(Entry backfilled.)*
+
+## [1.2.1] - 2026-07-05
+
 ### Added
 
-- `GrantsInvalidatedCacheHandler` — the framework-shipped consumer of Kernel's `GrantsInvalidated` auth event, registered automatically wherever grant authorization is registered. Calls `IOperationGrantCacheInvalidator.InvalidateCallerAsync` for the subject only — `InvalidateFeatureAsync` is a different, broader operation (evicts across every caller for a feature, not just this subject) and is never invoked from this handler. Part of ADR-0027's auth-event delivery wave; won't receive events until `Cirreum.Runtime.Authentication`'s in-process publisher (ADR-0025) ships.
+- `GrantsInvalidatedCacheHandler` — the framework-shipped consumer of Kernel's `GrantsInvalidated` auth event, registered automatically wherever grant authorization is registered. Calls `IOperationGrantCacheInvalidator.InvalidateCallerAsync` for the subject only — `InvalidateFeatureAsync` is a different, broader operation (evicts across every caller for a feature, not just this subject) and is never invoked from this handler. Part of ADR-0027's auth-event delivery wave; won't receive events until `Cirreum.Runtime.Authentication`'s in-process publisher (ADR-0025) ships. *(Entry backfilled — this shipped in 1.2.1 but was left under Unreleased at release time.)*
+
+### Updated
+
+- Re-pinned `Cirreum.Contracts` `1.2.0` → `1.2.1`.
 
 ## [1.2.0] - 2026-07-04
 
