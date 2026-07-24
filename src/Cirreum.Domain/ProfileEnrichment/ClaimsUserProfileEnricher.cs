@@ -33,6 +33,7 @@ public class ClaimsUserProfileEnricher : IUserProfileEnricher {
 		ArgumentNullException.ThrowIfNull(identity);
 
 		ProcessProfileClaims(profile, identity);
+		ProcessDisplayName(profile, identity);
 		ProcessOrganizationName(profile, identity);
 		ProcessDirectoryGroups(profile, identity);
 		ProcessAddressClaim(profile, identity);
@@ -94,6 +95,37 @@ public class ClaimsUserProfileEnricher : IUserProfileEnricher {
 					break;
 			}
 		}
+	}
+
+	/// <summary>
+	/// Fills <see cref="UserProfile.DisplayName"/> from claims when no richer enrichment has
+	/// already supplied one.
+	/// </summary>
+	/// <remarks>
+	/// Fill-only (<c>??=</c>): a provider enrichment that runs after this pass (for example
+	/// Microsoft Graph) may still take the slot with its own, richer value regardless of
+	/// enrichment order, since this only ever writes into an empty slot. The precedence is
+	/// <see cref="UserProfile.Nickname"/> (already resolved above, from the <c>nickname</c>
+	/// claim — a casual name, and the more natural "display" value) → the <c>name</c> claim
+	/// (skipped when there is a nickname, since <see cref="UserProfile.Name"/> is already
+	/// resolved from it at construction — falling back to it here would just duplicate
+	/// <see cref="UserProfile.Name"/>) → a <see cref="UserProfile.GivenName"/> +
+	/// <see cref="UserProfile.FamilyName"/> composite, for tokens that carry name parts but no
+	/// whole-name claim. This makes <see cref="UserProfile.DisplayName"/> the one property a UI
+	/// can consolidate on: every client gets a best-effort value from claims alone, and any
+	/// provider-specific enrichment only ever improves on it.
+	/// </remarks>
+	private static void ProcessDisplayName(UserProfile profile, ClaimsIdentity identity) {
+		profile.DisplayName ??= profile.Nickname.NullIfWhiteSpace()
+			?? identity.FindFirst("name")?.Value.NullIfWhiteSpace()
+			?? JoinNames(profile.GivenName, profile.FamilyName);
+	}
+
+	// A blank part is excluded rather than joined — a blank given_name would otherwise leave a
+	// leading space ("' Banta'"), and if both are blank the result must be null, not empty.
+	private static string? JoinNames(string? givenName, string? familyName) {
+		var joined = string.Join(' ', new[] { givenName, familyName }.Where(n => n.HasValue()));
+		return joined.NullIfWhiteSpace();
 	}
 
 	private static void ProcessOrganizationName(UserProfile profile, ClaimsIdentity identity) {

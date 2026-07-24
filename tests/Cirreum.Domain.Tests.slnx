@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <File Path="../src/Directory.Build.props" />
+    <Project Path="../src/Cirreum.Domain/Cirreum.Domain.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <File Path="Directory.Build.props" />
+    <Project Path="Cirreum.Domain.Tests/Cirreum.Domain.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `ClaimsUserProfileEnricher` now consolidates `UserProfile.DisplayName` from claims alone:
+  `Nickname` (from the `nickname` claim), then the `name` claim, then a `GivenName` +
+  `FamilyName` composite — whichever is available first. `Nickname` goes first because
+  `UserProfile.Name` is already resolved from the `name` claim at construction, so trying
+  `name` first for `DisplayName` would just duplicate `Name`. The step is fill-only (`??=`),
+  so a richer, provider-specific enrichment that runs before or after it (e.g. Microsoft Graph
+  in `Cirreum.Runtime.Wasm.Msal`) may still take the slot with its own value; correctness does
+  not depend on enrichment order. Previously `DisplayName` was only ever set by Graph
+  enrichment, so any client without it (every `Cirreum.Runtime.Wasm.Oidc` app) saw a
+  permanently-`null` `DisplayName` regardless of what the token carried.
+
 ## [1.2.7] - 2026-07-20
 
 ### Updated
