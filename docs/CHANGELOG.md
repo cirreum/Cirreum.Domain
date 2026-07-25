@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `ClaimsUserProfileEnricher` now resolves the `DisplayName` name rung through the identity's
+  configured name claim type instead of the literal `"name"` claim. A provisioned `customName`
+  is canonicalized client-side onto `ClaimsIdentity.NameClaimType`, so an application that
+  configured a name claim type other than `"name"` had its provisioned name skipped, and
+  `DisplayName` fell through to the `GivenName` + `FamilyName` composite (or to `null`). Apps on
+  the default `"name"` claim type are unaffected. Whitespace-only name claims still fall through
+  to the composite, as before.
+
 ## [1.3.1] - 2026-07-24
 
 ### Updated

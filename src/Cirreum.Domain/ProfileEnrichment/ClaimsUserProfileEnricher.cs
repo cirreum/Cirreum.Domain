@@ -43,6 +43,13 @@ public class ClaimsUserProfileEnricher : IUserProfileEnricher {
 		}
 	}
 
+	// Last-wins by design, not by accident: assignment is unconditional, so the final matching
+	// claim in enumeration order takes the slot. A provisioned custom* claim is canonicalized into
+	// an alias appended after the token's native claims, so an application-minted value overrides
+	// the identity provider's — which is the intent, since an application that mints given_name is
+	// declaring its own store the authority for it. Note this is the opposite of the positional
+	// default that governs single reads such as Identity.Name, where the native claim comes first
+	// and therefore wins.
 	private static void ProcessProfileClaims(UserProfile profile, ClaimsIdentity identity) {
 		foreach (var claim in identity.Claims) {
 			switch (claim.Type.ToLowerInvariant()) {
@@ -106,8 +113,8 @@ public class ClaimsUserProfileEnricher : IUserProfileEnricher {
 	/// Microsoft Graph) may still take the slot with its own, richer value regardless of
 	/// enrichment order, since this only ever writes into an empty slot. The precedence is
 	/// <see cref="UserProfile.Nickname"/> (already resolved above, from the <c>nickname</c>
-	/// claim — a casual name, and the more natural "display" value) → the <c>name</c> claim
-	/// (skipped when there is a nickname, since <see cref="UserProfile.Name"/> is already
+	/// claim — a casual name, and the more natural "display" value) → the identity's resolved
+	/// name (skipped when there is a nickname, since <see cref="UserProfile.Name"/> is already
 	/// resolved from it at construction — falling back to it here would just duplicate
 	/// <see cref="UserProfile.Name"/>) → a <see cref="UserProfile.GivenName"/> +
 	/// <see cref="UserProfile.FamilyName"/> composite, for tokens that carry name parts but no
@@ -116,8 +123,15 @@ public class ClaimsUserProfileEnricher : IUserProfileEnricher {
 	/// provider-specific enrichment only ever improves on it.
 	/// </remarks>
 	private static void ProcessDisplayName(UserProfile profile, ClaimsIdentity identity) {
+		// ResolveName, not FindFirst("name"): it walks name -> Identity.Name -> NameClaimType, so a
+		// provisioned name lands here even when the provider configured a name claim type that is
+		// not literally "name". NullIfWhiteSpace still applies — ResolveName's rungs guard on
+		// null-or-empty, so a whitespace-only claim survives it and would otherwise take the slot
+		// ahead of the composite. UserProfile.Name cannot stand in for this call either: it is
+		// coalesced to a non-null "unknown" at construction, which would make the composite below
+		// unreachable.
 		profile.DisplayName ??= profile.Nickname.NullIfWhiteSpace()
-			?? identity.FindFirst("name")?.Value.NullIfWhiteSpace()
+			?? ClaimsHelper.ResolveName(identity).NullIfWhiteSpace()
 			?? JoinNames(profile.GivenName, profile.FamilyName);
 	}
 

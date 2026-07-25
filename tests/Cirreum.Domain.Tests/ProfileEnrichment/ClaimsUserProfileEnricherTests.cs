@@ -114,9 +114,41 @@ public class ClaimsUserProfileEnricherTests {
 		profile.DisplayName.Should().Be("Glen Banta");
 	}
 
+	[Fact]
+	public void DisplayName_resolves_a_name_claim_type_the_provider_renamed() {
+		// A provisioned customName is aliased to the identity's configured NameClaimType, not to
+		// the literal "name" — so resolving only "name" here would drop a provisioned name and
+		// silently hand the slot to the composite. The composite is deliberately a different
+		// string than the name claim, so a regression cannot pass by coincidence.
+		var identity = new ClaimsIdentity(
+			[
+				new Claim("appName", "Glen T. Banta"),
+				new Claim("given_name", "Glen"),
+				new Claim("family_name", "Banta")
+			],
+			authenticationType: "test", nameType: "appName", roleType: "roles");
+		var profile = new UserProfile(new ClaimsPrincipal(identity), TimeZoneInfo.Utc.Id);
+
+		ClaimsUserProfileEnricher.EnrichProfile(profile, identity, captureUnknownClaims: false);
+
+		profile.DisplayName.Should().Be("Glen T. Banta");
+	}
+
 	// -------------------------------------------------------------------------
 	// Pre-existing claim mapping (first coverage — smoke tests only, not exhaustive)
 	// -------------------------------------------------------------------------
+
+	[Fact]
+	public void The_last_claim_wins_when_a_profile_claim_appears_more_than_once() {
+		// Last-wins is intentional, not incidental. A canonicalized custom* alias is appended
+		// after the token's native claims, so an application-minted value overrides the identity
+		// provider's — the app minted it because its own store is the authority.
+		var profile = ProfileFor(
+			new Claim("given_name", "glen"),
+			new Claim("given_name", "Glen"));
+
+		profile.GivenName.Should().Be("Glen");
+	}
 
 	[Fact]
 	public void The_nickname_claim_maps_to_Nickname() {
