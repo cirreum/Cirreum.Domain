@@ -80,6 +80,25 @@ rather than a search.
 Underscores separate words *within* a segment (`domain_events`, `no_handlers`); periods separate
 segments. That matches `cirreum.authz.resource_type` and the OpenTelemetry conventions.
 
+## Behavior Changes Worth Knowing
+
+Not breaking — nothing to find or replace — but results change:
+
+- **`ClaimsUserProfileEnricher` resolves `DisplayName`'s name rung through the identity's configured
+  name claim type** instead of the literal `"name"` claim. An application that configured a name
+  claim type other than `"name"` previously had a provisioned name skipped entirely, and
+  `DisplayName` fell through to the `GivenName` + `FamilyName` composite or to `null`. It now
+  resolves. Applications on the default `"name"` type see no change, and whitespace-only name claims
+  still fall through to the composite as before.
+
+- **The claim-mapping pass is documented as deliberately last-wins.** Assignment there is
+  unconditional, so the final matching claim takes the slot — and because a canonicalized `custom*`
+  alias is appended after the token's native claims, an application-minted `given_name`,
+  `family_name`, or `nickname` overrides the identity provider's. That is the intent: an application
+  that mints one is declaring its own store the authority. Note this is the opposite of the
+  positional default governing single reads such as `Identity.Name`, where the native claim comes
+  first and wins. Behavior is unchanged; only the intent is now stated, with a test covering it.
+
 ## What Didn't Change
 
 - Operation dispatch, validation, authorization, and the `Result` pipeline

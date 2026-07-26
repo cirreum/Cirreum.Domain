@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Updated
+
+- Re-pinned `Cirreum.Contracts` → `2.0.0` and `Cirreum.Kernel` → `2.0.0`, which carry the marker rename this release follows.
+
 ### Changed
 
 - **Conductor domain-event metrics renamed**, and an inconsistency with the operation instruments
