@@ -1,4 +1,4 @@
-﻿namespace Cirreum.Conductor.Internal;
+namespace Cirreum.Conductor.Internal;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -6,20 +6,20 @@ using System.Collections.Concurrent;
 using System.Reflection;
 
 /// <summary>
-/// Concrete wrapper implementation for typed notifications.
+/// Concrete wrapper implementation for typed domain events.
 /// </summary>
-internal sealed class NotificationHandlerWrapperImpl<TNotification>
-	: NotificationHandlerWrapper
-	where TNotification : INotification {
+internal sealed class DomainEventHandlerWrapperImpl<TDomainEvent>
+	: DomainEventHandlerWrapper
+	where TDomainEvent : IDomainEvent {
 
 	private static readonly ConcurrentDictionary<Type, PublisherStrategy?> _strategyCache = new();
-	private static readonly Type notificationType = typeof(TNotification);
-	private static readonly string notificationTypeName = notificationType.Name;
+	private static readonly Type DomainEventType = typeof(TDomainEvent);
+	private static readonly string domainEventTypeName = DomainEventType.Name;
 
 	public override Task<Result> Handle(
 		Publisher publisher,
 		ILogger logger,
-		INotification notification,
+		IDomainEvent domainEvent,
 		IServiceProvider serviceProvider,
 		PublisherStrategy? strategy,
 		PublisherStrategy defaultStrategy,
@@ -29,7 +29,7 @@ internal sealed class NotificationHandlerWrapperImpl<TNotification>
 		return HandleCoreAsync(
 			publisher,
 			logger,
-			(TNotification)notification,
+			(TDomainEvent)domainEvent,
 			serviceProvider,
 			strategy,
 			defaultStrategy,
@@ -40,14 +40,14 @@ internal sealed class NotificationHandlerWrapperImpl<TNotification>
 	private static async Task<Result> HandleCoreAsync(
 		Publisher publisher,
 		ILogger logger,
-		INotification notification,
+		IDomainEvent domainEvent,
 		IServiceProvider serviceProvider,
 		PublisherStrategy? strategy,
 		PublisherStrategy defaultStrategy,
 		CancellationToken cancellationToken) {
 
 		// ----- 0. START TIMING & ACTIVITY -----
-		using var activity = NotificationTelemetry.StartActivity(notificationTypeName);
+		using var activity = DomainEventTelemetry.StartActivity(domainEventTypeName);
 		var startTimestamp = activity is not null ? Timing.Start() : 0L;
 		var effectiveStrategy = PublisherStrategy.Sequential;
 		var handlerCount = 0;
@@ -62,19 +62,19 @@ internal sealed class NotificationHandlerWrapperImpl<TNotification>
 			var elapsed = Timing.GetElapsedMilliseconds(startTimestamp);
 
 			if (canceled) {
-				NotificationTelemetry.SetActivityCanceled(activity, (OperationCanceledException)error!);
-				NotificationTelemetry.RecordCanceled(notificationTypeName, elapsed, (OperationCanceledException)error!);
+				DomainEventTelemetry.SetActivityCanceled(activity, (OperationCanceledException)error!);
+				DomainEventTelemetry.RecordCanceled(domainEventTypeName, elapsed, (OperationCanceledException)error!);
 			} else if (success) {
-				NotificationTelemetry.SetActivitySuccess(activity);
-				NotificationTelemetry.RecordSuccess(
-					notificationTypeName,
+				DomainEventTelemetry.SetActivitySuccess(activity);
+				DomainEventTelemetry.RecordSuccess(
+					domainEventTypeName,
 					strategy,
 					count,
 					elapsed);
 			} else {
-				NotificationTelemetry.SetActivityError(activity, error!);
-				NotificationTelemetry.RecordFailure(
-					notificationTypeName,
+				DomainEventTelemetry.SetActivityError(activity, error!);
+				DomainEventTelemetry.RecordFailure(
+					domainEventTypeName,
 					strategy,
 					count,
 					elapsed,
@@ -86,13 +86,13 @@ internal sealed class NotificationHandlerWrapperImpl<TNotification>
 
 			// ----- 1. RESOLVE HANDLERS -----
 			var handlers = serviceProvider
-				.GetServices<INotificationHandler<TNotification>>()
+				.GetServices<IDomainEventHandler<TDomainEvent>>()
 				.ToArray();
 
 			handlerCount = handlers.Length;
 			if (handlerCount == 0) {
-				PublisherLogger.NoHandlersRegistered(logger, notificationTypeName);
-				NotificationTelemetry.RecordNoHandlers(notificationTypeName);
+				PublisherLogger.NoHandlersRegistered(logger, domainEventTypeName);
+				DomainEventTelemetry.RecordNoHandlers(domainEventTypeName);
 				return Result.Success;
 			}
 
@@ -101,22 +101,22 @@ internal sealed class NotificationHandlerWrapperImpl<TNotification>
 				effectiveStrategy = strategy.Value;
 			} else {
 				var attributeStrategy = _strategyCache.GetOrAdd(
-					notificationType,
+					DomainEventType,
 					static nt => nt.GetCustomAttribute<PublishingStrategyAttribute>()?.Strategy);
 				effectiveStrategy = attributeStrategy ?? defaultStrategy;
 			}
 
 			// ----- 3. PUBLISH -----
-			PublisherLogger.Publishing(logger, notificationTypeName, handlerCount, effectiveStrategy);
+			PublisherLogger.Publishing(logger, domainEventTypeName, handlerCount, effectiveStrategy);
 			var result = effectiveStrategy switch {
 				PublisherStrategy.Sequential =>
-					await publisher.PublishSequentialAsync((TNotification)notification, handlers, false, cancellationToken),
+					await publisher.PublishSequentialAsync((TDomainEvent)domainEvent, handlers, false, cancellationToken),
 				PublisherStrategy.FailFast =>
-					await publisher.PublishSequentialAsync((TNotification)notification, handlers, true, cancellationToken),
+					await publisher.PublishSequentialAsync((TDomainEvent)domainEvent, handlers, true, cancellationToken),
 				PublisherStrategy.Parallel =>
-					await publisher.PublishParallelAsync((TNotification)notification, handlers, cancellationToken),
+					await publisher.PublishParallelAsync((TDomainEvent)domainEvent, handlers, cancellationToken),
 				PublisherStrategy.FireAndForget =>
-					await publisher.PublishFireAndForgetAsync((TNotification)notification, handlers),
+					await publisher.PublishFireAndForgetAsync((TDomainEvent)domainEvent, handlers),
 				_ => Result.Fail(
 					new InvalidOperationException($"Unknown publisher strategy: {effectiveStrategy}"))
 			};

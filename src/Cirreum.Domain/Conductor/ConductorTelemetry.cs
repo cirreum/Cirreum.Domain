@@ -26,6 +26,26 @@ public static class ConductorTelemetry {
 	/// </summary>
 	public const string OperationsDurationHistogram = "conductor.operations.duration";
 
+	/// <summary>
+	/// Metric: Total number of domain events published.
+	/// </summary>
+	public const string DomainEventsTotalMetric = "conductor.domain_events.total";
+
+	/// <summary>
+	/// Metric: Total number of domain events whose handlers failed.
+	/// </summary>
+	public const string DomainEventsFailedTotalMetric = "conductor.domain_events.failed";
+
+	/// <summary>
+	/// Metric: Total number of domain events published with no registered handler.
+	/// </summary>
+	public const string DomainEventsNoHandlersTotalMetric = "conductor.domain_events.no_handlers";
+
+	/// <summary>
+	/// Metric: Histogram of domain-event publishing duration.
+	/// </summary>
+	public const string DomainEventsDurationHistogram = "conductor.domain_events.duration";
+
 	// Tags/Attributes
 
 	/// <summary>

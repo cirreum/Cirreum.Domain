@@ -1,4 +1,4 @@
-﻿namespace Cirreum.Conductor.Internal;
+namespace Cirreum.Conductor.Internal;
 
 using System.Collections.Concurrent;
 
@@ -9,7 +9,7 @@ using System.Collections.Concurrent;
 /// <para>
 /// These caches are intentionally unbounded because:
 /// <list type="bullet">
-/// <item>Operation/notification types are static and don't change at runtime</item>
+/// <item>Operation/domainEvent types are static and don't change at runtime</item>
 /// <item>Even with 1000+ types, memory usage is negligible (~48KB)</item>
 /// <item>Wrapper instances are lightweight (just type metadata)</item>
 /// <item>Cache size is naturally bounded by the number of types in your application</item>
@@ -37,9 +37,9 @@ internal static class TypeCache {
 	internal static readonly ConcurrentDictionary<Type, object> ResponseHandlers = new();
 
 	/// <summary>
-	/// Cache for notification handler wrappers.
+	/// Cache for domainEvent handler wrappers.
 	/// </summary>
-	internal static readonly ConcurrentDictionary<Type, NotificationHandlerWrapper> NotificationHandlers = new();
+	internal static readonly ConcurrentDictionary<Type, DomainEventHandlerWrapper> DomainEventHandlers = new();
 
 	/// <summary>
 	/// Clears all Conductor wrapper caches. Use only in hot-reload scenarios.
@@ -47,7 +47,7 @@ internal static class TypeCache {
 	public static void ClearAll() {
 		VoidHandlers.Clear();
 		ResponseHandlers.Clear();
-		NotificationHandlers.Clear();
+		DomainEventHandlers.Clear();
 	}
 
 	/// <summary>
@@ -56,7 +56,7 @@ internal static class TypeCache {
 	public static CacheStatistics GetStatistics() => new(
 		VoidHandlerCount: VoidHandlers.Count,
 		ResponseHandlerCount: ResponseHandlers.Count,
-		NotificationHandlerCount: NotificationHandlers.Count
+		DomainEventHandlerCount: DomainEventHandlers.Count
 	);
 }
 
@@ -66,12 +66,12 @@ internal static class TypeCache {
 public readonly record struct CacheStatistics(
 	int VoidHandlerCount,
 	int ResponseHandlerCount,
-	int NotificationHandlerCount) {
+	int DomainEventHandlerCount) {
 
 	/// <summary>
 	/// Gets the total number of cached wrappers across all caches.
 	/// </summary>
-	public int TotalCount => this.VoidHandlerCount + this.ResponseHandlerCount + this.NotificationHandlerCount;
+	public int TotalCount => this.VoidHandlerCount + this.ResponseHandlerCount + this.DomainEventHandlerCount;
 
 	/// <summary>
 	/// Gets the approximate memory usage of cached wrappers in bytes.

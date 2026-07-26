@@ -1,4 +1,4 @@
-﻿namespace Cirreum.Conductor;
+namespace Cirreum.Conductor;
 
 using Cirreum.Diagnostics;
 using System.Diagnostics;
@@ -54,7 +54,7 @@ internal static class OperationTelemetry {
 
 		var activity = _activitySource.StartActivity(
 			"Dispatch Operation",
-			DomainContext.CurrentActivityKind);
+			DomainContext.EntryPointActivityKind);
 
 		activity?.SetTag(ConductorTelemetry.OperationTypeTag, operationName);
 		activity?.SetTag(ConductorTelemetry.OperationHasResponseTag, hasResponse);

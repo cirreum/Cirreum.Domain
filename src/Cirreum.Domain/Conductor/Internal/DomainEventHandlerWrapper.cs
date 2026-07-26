@@ -1,15 +1,15 @@
-﻿namespace Cirreum.Conductor.Internal;
+namespace Cirreum.Conductor.Internal;
 
 using Microsoft.Extensions.Logging;
 
 /// <summary>
-/// Base wrapper for notification handlers.
+/// Base wrapper for domainEvent handlers.
 /// </summary>
-internal abstract class NotificationHandlerWrapper {
+internal abstract class DomainEventHandlerWrapper {
 	public abstract Task<Result> Handle(
 		Publisher publisher,
 		ILogger logger,
-		INotification notification,
+		IDomainEvent domainEvent,
 		IServiceProvider serviceProvider,
 		PublisherStrategy? strategy,
 		PublisherStrategy defaultStrategy,

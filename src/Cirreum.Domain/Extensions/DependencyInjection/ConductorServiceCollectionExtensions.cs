@@ -1,4 +1,4 @@
-﻿namespace Cirreum;
+namespace Cirreum;
 
 using Cirreum.Caching;
 using Cirreum.Caching.Configuration;
@@ -228,7 +228,7 @@ public static class ConductorServiceCollectionExtensions {
 		this IServiceCollection services,
 		Assembly[] assemblies) {
 
-		var notificationHandlerType = typeof(INotificationHandler<>);
+		var notificationHandlerType = typeof(IDomainEventHandler<>);
 
 		var availableTypes = assemblies
 			.SelectMany(a => a.GetExportedTypes())
@@ -253,7 +253,7 @@ public static class ConductorServiceCollectionExtensions {
 						   where interfaces.Any(i =>
 							   i.IsGenericType &&
 							   i.GetGenericTypeDefinition() == notificationHandlerType)
-						   // Verify arity matches (INotificationHandler<> has 1 generic parameter)
+						   // Verify arity matches (IDomainEventHandler<> has 1 generic parameter)
 						   where type.GetGenericArguments().Length == 1
 						   select type;
 

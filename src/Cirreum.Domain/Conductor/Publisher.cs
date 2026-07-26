@@ -1,10 +1,10 @@
-﻿namespace Cirreum.Conductor;
+namespace Cirreum.Conductor;
 
 using Cirreum.Conductor.Internal;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
-/// Default publisher that sends notifications to all registered handlers.
+/// Default publisher that sends domain events to all registered handlers.
 /// Supports parallel, sequential and fire-and-forget publishing.
 /// </summary>
 sealed class Publisher(
@@ -13,36 +13,36 @@ sealed class Publisher(
 	ILogger<Publisher> logger
 ) : IPublisher {
 
-	public Task<Result> PublishAsync<TNotification>(
-		TNotification notification,
+	public Task<Result> PublishAsync<TDomainEvent>(
+		TDomainEvent domainEvent,
 		PublisherStrategy? strategy = null,
 		CancellationToken cancellationToken = default)
-		where TNotification : INotification {
+		where TDomainEvent : IDomainEvent {
 
-		ArgumentNullException.ThrowIfNull(notification);
+		ArgumentNullException.ThrowIfNull(domainEvent);
 
-		var wrapper = TypeCache.NotificationHandlers.GetOrAdd(notification.GetType(), static nt => {
-			var wrapperType = typeof(NotificationHandlerWrapperImpl<>).MakeGenericType(nt);
-			return (NotificationHandlerWrapper)(Activator.CreateInstance(wrapperType)
+		var wrapper = TypeCache.DomainEventHandlers.GetOrAdd(domainEvent.GetType(), static nt => {
+			var wrapperType = typeof(DomainEventHandlerWrapperImpl<>).MakeGenericType(nt);
+			return (DomainEventHandlerWrapper)(Activator.CreateInstance(wrapperType)
 				?? throw new InvalidOperationException($"Could not create wrapper for {nt.Name}"));
 		});
 
 		return wrapper.Handle(
 			this,
 			logger,
-			notification,
+			domainEvent,
 			serviceProvider,
 			strategy,
 			defaultStrategy,
 			cancellationToken);
 	}
 
-	internal async Task<Result> PublishSequentialAsync<TNotification>(
-		TNotification notification,
-		INotificationHandler<TNotification>[] handlers,
+	internal async Task<Result> PublishSequentialAsync<TDomainEvent>(
+		TDomainEvent domainEvent,
+		IDomainEventHandler<TDomainEvent>[] handlers,
 		bool stopOnFailure,
 		CancellationToken cancellationToken)
-		where TNotification : INotification {
+		where TDomainEvent : IDomainEvent {
 
 		List<Exception>? failures = null;
 
@@ -51,7 +51,7 @@ sealed class Publisher(
 
 			var handlerType = handler.GetType();
 			try {
-				await handler.HandleAsync(notification, cancellationToken);
+				await handler.HandleAsync(domainEvent, cancellationToken);
 			} catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
 				// Cooperative cancellation - let it bubble
 				throw;
@@ -75,20 +75,20 @@ sealed class Publisher(
 			return Result.Success;
 		}
 
-		var message = $"{failures.Count} notification handler(s) failed";
+		var message = $"{failures.Count} domainEvent handler(s) failed";
 		return Result.Fail(new AggregateException(message, failures));
 	}
 
-	internal async Task<Result> PublishParallelAsync<TNotification>(
-		TNotification notification,
-		INotificationHandler<TNotification>[] handlers,
+	internal async Task<Result> PublishParallelAsync<TDomainEvent>(
+		TDomainEvent domainEvent,
+		IDomainEventHandler<TDomainEvent>[] handlers,
 		CancellationToken cancellationToken)
-		where TNotification : INotification {
+		where TDomainEvent : IDomainEvent {
 
 		cancellationToken.ThrowIfCancellationRequested();
 
 		var tasks = handlers
-			.Select(handler => InvokeHandlerAsync(handler, notification, logger, cancellationToken))
+			.Select(handler => InvokeHandlerAsync(handler, domainEvent, logger, cancellationToken))
 			.ToArray();
 
 		var results = await Task.WhenAll(tasks);
@@ -102,12 +102,12 @@ sealed class Publisher(
 			return Result.Success;
 		}
 
-		var message = $"{failures.Count} notification handler(s) failed";
+		var message = $"{failures.Count} domainEvent handler(s) failed";
 		return Result.Fail(new AggregateException(message, failures));
 
 		static async Task<Result> InvokeHandlerAsync(
-			INotificationHandler<TNotification> handler,
-			TNotification notification,
+			IDomainEventHandler<TDomainEvent> handler,
+			TDomainEvent domainEvent,
 			ILogger handlerLogger,
 			CancellationToken token) {
 
@@ -116,7 +116,7 @@ sealed class Publisher(
 			token.ThrowIfCancellationRequested();
 
 			try {
-				await handler.HandleAsync(notification, token);
+				await handler.HandleAsync(domainEvent, token);
 				return Result.Success;
 			} catch (OperationCanceledException) when (token.IsCancellationRequested) {
 				// Cooperative cancellation - let it bubble
@@ -131,16 +131,16 @@ sealed class Publisher(
 		}
 	}
 
-	internal Task<Result> PublishFireAndForgetAsync<TNotification>(
-		TNotification notification,
-		INotificationHandler<TNotification>[] handlers)
-		where TNotification : INotification {
+	internal Task<Result> PublishFireAndForgetAsync<TDomainEvent>(
+		TDomainEvent domainEvent,
+		IDomainEventHandler<TDomainEvent>[] handlers)
+		where TDomainEvent : IDomainEvent {
 
 		// Fire and forget with parallel execution
 		_ = Task.Run(async () => {
 			var tasks = handlers.Select(async handler => {
 				try {
-					await handler.HandleAsync(notification, CancellationToken.None);
+					await handler.HandleAsync(domainEvent, CancellationToken.None);
 				} catch (Exception ex) {
 					var handlerType = handler.GetType();
 					PublisherLogger.HandlerFailedFireAndForget(logger, handlerType, ex);

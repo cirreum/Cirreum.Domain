@@ -1,4 +1,4 @@
-﻿namespace Cirreum.Conductor;
+namespace Cirreum.Conductor;
 
 using Cirreum.Conductor.Internal;
 using System;
@@ -6,7 +6,7 @@ using System;
 /// <summary>
 /// Default implementation of <see cref="IDispatcher"/> and <see cref="IConductor"/>
 /// that routes operations to their handlers through a pipeline of intercepts,
-/// and publishes notifications to all registered handlers.
+/// and publishes domain events to all registered handlers.
 /// </summary>
 /// <remarks>
 /// This dispatcher uses a wrapper-based caching strategy to avoid reflection overhead in the hot path.
@@ -66,13 +66,13 @@ sealed class Dispatcher(
 	#region IPublisher Implementation
 
 	/// <inheritdoc />
-	public Task<Result> PublishAsync<TNotification>(
-		TNotification notification,
+	public Task<Result> PublishAsync<TDomainEvent>(
+		TDomainEvent domainEvent,
 		PublisherStrategy? strategy = null,
 		CancellationToken cancellationToken = default)
-		where TNotification : INotification {
+		where TDomainEvent : IDomainEvent {
 
-		return publisher.PublishAsync(notification, strategy, cancellationToken);
+		return publisher.PublishAsync(domainEvent, strategy, cancellationToken);
 	}
 
 	#endregion

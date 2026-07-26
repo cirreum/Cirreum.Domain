@@ -9,6 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Conductor domain-event metrics renamed**, and an inconsistency with the operation instruments
+  corrected at the same time:
+
+  | Before | After |
+  |---|---|
+  | `conductor.notifications.total` | `conductor.domain_events.total` |
+  | `conductor.notifications.failed.total` | `conductor.domain_events.failed` |
+  | `conductor.notifications.no_handlers.total` | `conductor.domain_events.no_handlers` |
+  | `conductor.notifications.duration` | `conductor.domain_events.duration` |
+
+  Note `.failed.total` → `.failed`: the operation instruments have always been
+  `conductor.operations.failed` / `.canceled`, so the domain-event pair were the outliers. All four
+  are now constants on `ConductorTelemetry` beside the operation metrics rather than inline
+  literals, so the next rename is a compile-time reference instead of a search. Dashboards, alerts,
+  and saved queries bound to the old names need updating.
+- **Conductor's publish/subscribe markers are renamed** — `INotification` → `IDomainEvent`,
+  `INotificationHandler<T>` → `IDomainEventHandler<T>` — following `Cirreum.Kernel` 2.0.0.
+  Cirreum used "notification" for two unrelated concepts: in-application publish/subscribe, and
+  the human-facing state family a client binds to in order to show a person something.
+  `IDomainEvent` names the first for what it is; "notification" now refers only to the second.
+
+  **`INotificationState` and `IScopedNotificationState` keep their names** — they are the
+  human-facing concept, and preserving that separation is the point of the rename. A project-wide
+  find/replace of "Notification" will destroy it.
+
 ### Fixed
 
 - `ClaimsUserProfileEnricher` now resolves the `DisplayName` name rung through the identity's
