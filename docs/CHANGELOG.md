@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-07-26
+
 ### Updated
 
 - Re-pinned `Cirreum.Contracts` → `2.0.0` and `Cirreum.Kernel` → `2.0.0`, which carry the marker rename this release follows.
