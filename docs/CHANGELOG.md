@@ -9,6 +9,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-07-30
+
+### Security
+
+- **Operation-level authorization is enforced again — the `Authorization<,>` intercept is
+  registered in the Conductor default pipeline.** The 2.0.0 spine shipped without it:
+  `ConductorOptionsBuilder.ConfigureIntercepts` registered only `Validation`,
+  `HandlerPerformance`, and `QueryCaching`, deferring the authorization intercepts to a "runtime
+  composition layer" that was never built (a comment left over from the pre-reset plan in which
+  the intercept belonged to the since-dissolved Authorization track). The effect was fail-open:
+  every `IAuthorizableOperationBase` dispatch proceeded straight to its handler — authorizer
+  role/claim rules, the Stage 1 grant gate (including `OwnerId` auto-stamping), authorization
+  constraints, and policy validators were all silently skipped, with no error, log, or telemetry.
+  The default pipeline is now `Validation → Authorization → GrantedLookupAudit → [custom] →
+  HandlerPerformance → QueryCaching`, restoring the pre-reset composition and order.
+  `Authorization<,>` moved in from `Cirreum.Contracts` to live beside the evaluator it invokes
+  and the builder that registers it.
+- **`GrantedLookupAudit<,>` (the Pattern C post-fetch ownership audit) is registered as well** —
+  it was orphaned by the same omission, so null-`OwnerId` lookup auditing never ran either.
+- **Boot-time hard-fail guards against recurrence.** `AddDomainServices` now throws at
+  composition time if the default pipeline is ever missing the `Authorization<,>` intercept, and
+  reports authorizable operations that no authorizer, grant surface, constraint, or policy
+  validator could ever pass (always-deny dead operations) through the deferred startup log —
+  which the server runtime converts into a boot failure.
+
+### Fixed
+
+- `AddDomainServices` registers the default `IAuthorizationEvaluator` itself (`TryAdd`,
+  idempotent with the host runtimes' existing calls), so the opinionated composition path is
+  self-contained instead of relying on every host to call `AddDefaultAuthorizationEvaluator`
+  first.
+
+### Updated
+
+- Re-pinned `Cirreum.Contracts` `2.0.0` → `2.0.1`, which removes the orphaned internal intercept
+  this release re-homes and documents the home-owner merge semantics.
+- Added `Cirreum.Logging.Deferred` `1.0.116` (deferred startup-log reporting for the new
+  boot-time validation).
+
 ## [2.0.0] - 2026-07-26
 
 ### Updated

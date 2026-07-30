@@ -2,8 +2,10 @@ namespace Cirreum;
 
 using Cirreum.Authorization;
 using Cirreum.Authorization.Operations;
+using Cirreum.Conductor;
 using Cirreum.Conductor.Configuration;
 using Cirreum.Extensions;
+using Cirreum.Logging.Deferred;
 using Cirreum.Security;
 using FluentValidation;
 using Microsoft.Extensions.Configuration;
@@ -102,8 +104,28 @@ public static class DomainServicesServiceCollectionExtensions {
 		// Central cache infrastructure.
 		services.AddCirreumCaching(configuration);
 
+		// Authorization evaluator — the opinionated path is self-contained; hosts may have
+		// already registered it (TryAdd semantics make this idempotent).
+		services.AddDefaultAuthorizationEvaluator();
+
 		// FluentValidation + authorization (validators, constraints, resource + policy authorizers).
 		services.AddFluentValidationAndAuthorization(assemblies);
+
+		// Boot-time validation: an authorizable operation with no possible authorization
+		// source is denied on every dispatch — fail the boot instead of shipping a dead
+		// operation. Hard failure happens when the host validates the deferred log.
+		var deadOperations = AuthorizationStartupValidator.FindUnauthorizableOperations(
+			assemblies
+				.Where(a => a is not null)
+				.SelectMany(a => a.GetTypes())
+				.Distinct());
+		if (deadOperations.Count > 0) {
+			Logger.CreateDeferredLogger().LogError(
+				"The following authorizable operations have no authorizer, grant surface, "
+				+ "constraint, or policy validator and will be denied on every dispatch: {Operations}. "
+				+ "Register an AuthorizerBase<T> (or grant/constraint/policy coverage) for each.",
+				string.Join(", ", deadOperations.Select(t => t.FullName ?? t.Name)));
+		}
 
 		// Conductor — call the internal core with applyDefaultPipeline: true (the built-in
 		// domain pipeline: validation, authorization, performance, caching).
@@ -115,6 +137,19 @@ public static class DomainServicesServiceCollectionExtensions {
 			configureConductor: conductor => conductor.RegisterFromAssemblies(assemblies),
 			optionsBuilder: optionsBuilder,
 			applyDefaultPipeline: true);
+
+		// Framework invariant: the default pipeline MUST enforce operation authorization.
+		// This regressed once (fail-open, silently) when the registration was dropped in a
+		// refactor — never let a composition without the Authorization intercept boot.
+		if (!services.Any(sd =>
+			sd.ServiceType == typeof(IIntercept<,>)
+			&& sd.ImplementationType == typeof(Authorization<,>))) {
+			throw new InvalidOperationException(
+				"The Conductor default pipeline is missing the Authorization intercept. "
+				+ "Operation-level authorization would be silently skipped for every dispatch. "
+				+ "This is a framework composition defect — the spine's ConfigureIntercepts "
+				+ "must register Authorization<,> for IAuthorizableOperationBase operations.");
+		}
 
 		// Domain context initializer.
 		services.AddDomainContextInitilizer();

@@ -1,5 +1,7 @@
 ﻿namespace Cirreum.Conductor.Configuration;
 
+using Cirreum.Authorization.Operations;
+using Cirreum.Authorization.Operations.Grants;
 using Cirreum.Conductor.Intercepts;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -134,12 +136,13 @@ public class ConductorOptionsBuilder {
 
 	internal void ConfigureIntercepts(ConductorBuilder builder) {
 
-		// Core spine intercepts in fixed order.
-		// Authorization-track intercepts (Authorization<,>, GrantedLookupAudit<,>) are
-		// registered separately by the runtime composition layer — the spine
-		// does not reference the authorization track (no cross-track references).
+		// Core spine intercepts in fixed order. Authorization is a sibling of
+		// Conductor — stage 6 (Operation Authorization) executes IN this pipeline,
+		// so the spine registers its intercepts itself.
 		builder
-			.AddOpenIntercept(typeof(Validation<,>), this._dispatcherLifetime);
+			.AddOpenIntercept(typeof(Validation<,>), this._dispatcherLifetime)
+			.AddOpenIntercept(typeof(Authorization<,>), this._dispatcherLifetime)
+			.AddOpenIntercept(typeof(GrantedLookupAudit<,>), this._dispatcherLifetime);
 
 		// Custom intercepts (extensibility point — including track-specific intercepts
 		// wired by provider runtimes such as Authorization).

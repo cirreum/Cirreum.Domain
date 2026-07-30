@@ -21,10 +21,11 @@
 			The provider abstraction packages alongside it are NOT referenced — composition
 			happens in the runtime layer.
 		-->
-		<PackageReference Include="Cirreum.Contracts" Version="2.0.0" />
+		<PackageReference Include="Cirreum.Contracts" Version="2.0.1" />
 
-		<!-- Foundation peer NuGet — used directly and NOT transitive via Contracts -->
+		<!-- Foundation peer NuGets — used directly and NOT transitive via Contracts -->
 		<PackageReference Include="Cirreum.Exceptions" Version="1.1.0" />
+		<PackageReference Include="Cirreum.Logging.Deferred" Version="1.0.116" />
 
 		<!-- External NuGets -->
 		<PackageReference Include="FluentValidation" Version="12.1.1" />
