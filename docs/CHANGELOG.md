@@ -9,6 +9,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-07-30
+
+### Breaking
+
+- **`IPolicyValidator` → `IPolicyAuthorizer`, and its `ValidateAsync` → `EvaluateAsync`.** The
+  Stage 3 extension point performs authorization — it runs inside the authorization evaluator,
+  denies with `ForbiddenAccessException`, and participates in deny telemetry — while "validator"
+  in Cirreum means FluentValidation property validation (the Conductor `Validation` intercept's
+  stage). The framework's own registration code already called these "policy authorizers"; the
+  public surface now agrees. `PolicyName`, `Order`, `SupportedRuntimeTypes`, `AppliesTo`, and all
+  evaluation semantics are unchanged. See `MIGRATION-v3.md`.
+- **`AttributeValidatorBase<TAttribute>` → `AttributePolicyAuthorizerBase<TAttribute>`** — the
+  attribute-gated policy-authorizer base was never a validator. The file also leaves the
+  `Authorization\Validators` folder (home of the genuine property validators); its namespace was
+  already `Cirreum.Authorization` and does not change.
+- Stage 3 deny telemetry emits step `policy-authorizer` (was `policy-validator`) via the paired
+  `Cirreum.Contracts` 3.0.0 rename.
+
+### Updated
+
+- Re-pinned `Cirreum.Contracts` `2.0.1` → `3.0.0` (the paired `StepPolicyAuthorizer` telemetry
+  rename).
+
+### Fixed
+
+- **`ResourceAccessEvaluator.CheckAsync(resourceId, …)` resolves the caller before any provider
+  I/O, and the not-found path is a pure `Result` path.** Previously the resource-not-found branch
+  called `ResolveCaller()` after the provider fetch, binding a `userState` it never consumed — the
+  call's only effect was an invariant throw placed where the block's job is to return a failed
+  `Result`. The caller resolution is now hoisted to the top of the overload (contextless misuse
+  fails fast before touching the provider, consistent with the other entry points), and the
+  not-found denial now writes the same `LogResourceAccessDenied` log line as every other deny path
+  (previously telemetry-only).
+
 ## [2.0.1] - 2026-07-30
 
 ### Security

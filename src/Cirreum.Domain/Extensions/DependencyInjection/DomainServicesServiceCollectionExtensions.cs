@@ -122,7 +122,7 @@ public static class DomainServicesServiceCollectionExtensions {
 		if (deadOperations.Count > 0) {
 			Logger.CreateDeferredLogger().LogError(
 				"The following authorizable operations have no authorizer, grant surface, "
-				+ "constraint, or policy validator and will be denied on every dispatch: {Operations}. "
+				+ "constraint, or policy authorizer and will be denied on every dispatch: {Operations}. "
 				+ "Register an AuthorizerBase<T> (or grant/constraint/policy coverage) for each.",
 				string.Join(", ", deadOperations.Select(t => t.FullName ?? t.Name)));
 		}
@@ -162,7 +162,7 @@ public static class DomainServicesServiceCollectionExtensions {
 		var validatorOpenGenericType = typeof(IValidator<>);
 		var constraintType = typeof(IAuthorizationConstraint);
 		var resourceAuthorizerType = typeof(IAuthorizer<>);
-		var policyAuthorizerType = typeof(IPolicyValidator);
+		var policyAuthorizerType = typeof(IPolicyAuthorizer);
 
 		var availableTypes = assemblies
 			.Where(a => a is not null)

@@ -12,12 +12,12 @@ using Cirreum.Extensions;
 /// <para>
 /// Mirrors the runtime deny condition in <see cref="DefaultAuthorizationEvaluator"/>: an
 /// operation with no <see cref="IAuthorizer{TAuthorizableObject}"/>, no grant detection
-/// surface, and no <see cref="IAuthorizationConstraint"/> or <see cref="IPolicyValidator"/>
+/// surface, and no <see cref="IAuthorizationConstraint"/> or <see cref="IPolicyAuthorizer"/>
 /// anywhere in the application is denied on every dispatch. Surfacing that at boot turns a
 /// silent always-deny operation into an immediate, actionable failure.
 /// </para>
 /// <para>
-/// The check is intentionally conservative: when any constraint or policy validator type
+/// The check is intentionally conservative: when any constraint or policy authorizer type
 /// exists, no operation is provably dead (constraints and policies are evaluated app-wide
 /// at dispatch time), so the validation stays silent rather than risk failing a valid
 /// composition.
@@ -47,7 +47,7 @@ internal static class AuthorizationStartupValidator {
 			}
 
 			if (typeof(IAuthorizationConstraint).IsAssignableFrom(type)
-				|| typeof(IPolicyValidator).IsAssignableFrom(type)) {
+				|| typeof(IPolicyAuthorizer).IsAssignableFrom(type)) {
 				hasConstraintsOrPolicies = true;
 			}
 

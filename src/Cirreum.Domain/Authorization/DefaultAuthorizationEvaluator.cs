@@ -40,9 +40,9 @@ using System.Collections.Immutable;
 /// All authorizers run; failures are aggregated.
 /// </description></item>
 /// <item><description>
-/// <b>Stage 3 — Policy</b>: policy validators (<see cref="IPolicyValidator"/>) whose
-/// <see cref="IPolicyValidator.AppliesTo{TAuthorizableObject}(TAuthorizableObject, DomainRuntimeType, DateTimeOffset)"/>
-/// returns true. Run in <see cref="IPolicyValidator.Order"/>; failures are aggregated.
+/// <b>Stage 3 — Policy</b>: policy authorizers (<see cref="IPolicyAuthorizer"/>) whose
+/// <see cref="IPolicyAuthorizer.AppliesTo{TAuthorizableObject}(TAuthorizableObject, DomainRuntimeType, DateTimeOffset)"/>
+/// returns true. Run in <see cref="IPolicyAuthorizer.Order"/>; failures are aggregated.
 /// </description></item>
 /// </list>
 /// </remarks>
@@ -148,8 +148,8 @@ sealed class DefaultAuthorizationEvaluator(
 		// Policy runtime-type filter is deferred into the foreach below — combined with
 		// AppliesTo so we walk the array once instead of materializing a filtered copy here
 		// and then iterating again with Where().OrderBy().
-		var rawPolicy = services.GetService<IEnumerable<IPolicyValidator>>()!;
-		var policyAuthorizers = rawPolicy as IPolicyValidator[] ?? [.. rawPolicy];
+		var rawPolicy = services.GetService<IEnumerable<IPolicyAuthorizer>>()!;
+		var policyAuthorizers = rawPolicy as IPolicyAuthorizer[] ?? [.. rawPolicy];
 
 		var grantGateApplies = grantEvaluator is not null
 			&& (authorizableObject is IGrantableMutateBase
@@ -164,7 +164,7 @@ sealed class DefaultAuthorizationEvaluator(
 			//******************************************
 			//
 			// OBJECT HAS NO AUTHORIZERS AND
-			// RUNTIME HAS NO POLICY VALIDATORS
+			// RUNTIME HAS NO POLICY AUTHORIZERS
 			// AND NO CONSTRAINTS APPLY
 			//
 			//******************************************
@@ -344,7 +344,7 @@ sealed class DefaultAuthorizationEvaluator(
 
 			//******************************************
 			//
-			// STAGE 3 — POLICY VALIDATORS
+			// STAGE 3 — POLICY AUTHORIZERS
 			//
 			// Aggregate failures within the stage.
 			//
@@ -355,11 +355,11 @@ sealed class DefaultAuthorizationEvaluator(
 			var applicablePolicies = FilterAndOrderPolicies(
 				policyAuthorizers, authorizableObject, DomainContext.RuntimeType, authorizationContext.Timestamp);
 
-			foreach (var policyValidator in applicablePolicies) {
+			foreach (var policyAuthorizer in applicablePolicies) {
 				cancellationToken.ThrowIfCancellationRequested();
 
-				var policyResult = await policyValidator
-					.ValidateAsync(authorizationContext, cancellationToken)
+				var policyResult = await policyAuthorizer
+					.EvaluateAsync(authorizationContext, cancellationToken)
 					.ConfigureAwait(false);
 
 				if (!policyResult.IsValid) {
@@ -370,7 +370,7 @@ sealed class DefaultAuthorizationEvaluator(
 			if (stageFailures is not null) {
 				AuthorizationTelemetry.RecordDecision(
 					stage: AuthorizationTelemetry.StagePolicy,
-					step: AuthorizationTelemetry.StepPolicyValidator,
+					step: AuthorizationTelemetry.StepPolicyAuthorizer,
 					decision: AuthorizationTelemetry.DecisionDeny,
 					reason: stageFailures[0].ErrorCode ?? "UNKNOWN",
 					resourceType: objectName);
@@ -422,8 +422,8 @@ sealed class DefaultAuthorizationEvaluator(
 		}
 	}
 
-	private static List<IPolicyValidator> FilterAndOrderPolicies<TAuthorizableObject>(
-		IPolicyValidator[] all,
+	private static List<IPolicyAuthorizer> FilterAndOrderPolicies<TAuthorizableObject>(
+		IPolicyAuthorizer[] all,
 		TAuthorizableObject authorizableObject,
 		DomainRuntimeType runtimeType,
 		DateTimeOffset timestamp)
@@ -431,7 +431,7 @@ sealed class DefaultAuthorizationEvaluator(
 
 		// Walk once, keep applicable, sort by Order. Typical sizes are small (2-8) so
 		// List.Sort with the delegate comparer is cheaper than LINQ's OrderBy + stable sort.
-		var applicable = new List<IPolicyValidator>(all.Length);
+		var applicable = new List<IPolicyAuthorizer>(all.Length);
 		foreach (var pv in all) {
 			if (pv.SupportedRuntimeTypes.Contains(runtimeType)
 				&& pv.AppliesTo(authorizableObject, runtimeType, timestamp)) {

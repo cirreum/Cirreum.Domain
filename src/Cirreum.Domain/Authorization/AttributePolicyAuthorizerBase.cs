@@ -1,22 +1,22 @@
-﻿namespace Cirreum.Authorization;
+namespace Cirreum.Authorization;
 
 using FluentValidation.Results;
 using System.Collections.Concurrent;
 using System.Reflection;
 
 /// <summary>
-/// Provides a base implementation for authorization policy validators that operate on
+/// Provides a base implementation for policy authorizers that operate on
 /// <see cref="IAuthorizableObject"/> types decorated with specific attributes.
 /// </summary>
-/// <typeparam name="TAttribute">The type of attribute that this validator operates on. Must inherit from <see cref="Attribute"/>.</typeparam>
+/// <typeparam name="TAttribute">The type of attribute this authorizer operates on. Must inherit from <see cref="Attribute"/>.</typeparam>
 /// <remarks>
-/// This abstract class serves as a foundation for creating authorization validators that determine
-/// their applicability based on the presence of custom attributes on the authorizable object's type.
-/// It provides common functionality for attribute detection while allowing derived classes to
-/// implement specific validation logic.
+/// This abstract class serves as a foundation for creating policy authorizers that determine
+/// their applicability based on the presence of custom attributes on the authorizable object's
+/// type. It provides common functionality for attribute detection while allowing derived classes
+/// to implement specific authorization logic.
 /// </remarks>
-public abstract class AttributeValidatorBase<TAttribute>
-	: IPolicyValidator where TAttribute : Attribute {
+public abstract class AttributePolicyAuthorizerBase<TAttribute>
+	: IPolicyAuthorizer where TAttribute : Attribute {
 
 	// Cache attributes per object type to avoid repeated reflection
 	private static readonly ConcurrentDictionary<Type, TAttribute?> _attributeCache = new();
@@ -54,7 +54,7 @@ public abstract class AttributeValidatorBase<TAttribute>
 		GetAttributeCached(authorizableObject.GetType());
 
 	/// <inheritdoc/>
-	public abstract Task<ValidationResult> ValidateAsync<TAuthorizableObject>(
+	public abstract Task<ValidationResult> EvaluateAsync<TAuthorizableObject>(
 		AuthorizationContext<TAuthorizableObject> context,
 		CancellationToken cancellationToken = default)
 		where TAuthorizableObject : IAuthorizableObject;

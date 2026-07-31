@@ -84,12 +84,15 @@ internal sealed class ResourceAccessEvaluator(
 		CancellationToken cancellationToken = default)
 		where T : IProtectedResource {
 
+		// Resolve the caller before any provider I/O — enforces the "authorization
+		// pipeline has run" invariant up front, on every branch of this overload.
+		var (userState, effectiveRoles) = this.ResolveCaller();
+
 		var provider = services.GetRequiredService<IAccessEntryProvider<T>>();
 
 		// null resourceId → root defaults
 		if (resourceId is null) {
 			var rootAccess = new EffectiveAccess(provider.RootDefaults);
-			var (userState, effectiveRoles) = this.ResolveCaller();
 
 			if (effectiveRoles.Count == 0) {
 				EmitTelemetry(typeof(T).Name, AuthorizationTelemetry.DecisionDeny, DenyCodes.ResourceAccessDenied);
@@ -110,7 +113,13 @@ internal sealed class ResourceAccessEvaluator(
 		var resource = await provider.GetByIdAsync(resourceId, cancellationToken).ConfigureAwait(false);
 
 		if (resource is null) {
-			var (userState, _) = this.ResolveCaller();
+			logger.LogResourceAccessDenied(
+				userState.Name,
+				typeof(T).Name,
+				resourceId,
+				permission.ToString(),
+				DenyCodes.ResourceNotFound);
+
 			EmitTelemetry(typeof(T).Name, AuthorizationTelemetry.DecisionDeny, DenyCodes.ResourceNotFound);
 			return Result.Fail(new NotFoundException(resourceId));
 		}
