@@ -74,6 +74,27 @@ public class AuthorizationDispatchTests {
 	}
 
 	[Fact]
+	public async Task Home_company_membership_without_a_grant_record_is_denied() {
+
+		// Home membership is a grant record, never inferred from identity: a caller whose
+		// ApplicationUser carries a home OwnerId but who has zero grant records must be
+		// denied. Fails loud if an implicit home-owner merge ever creeps back into the
+		// grant factory.
+		var user = TestUserState.CreateAuthenticated(
+			"home-user", "Home User", [ApplicationRoles.AppUserRole],
+			applicationUser: new TestOwnedApplicationUser(OwnerId: "home-company"));
+		using var provider = AuthorizationTestHost.Build(user);
+		var dispatcher = provider.GetRequiredService<IDispatcher>();
+
+		var operation = new WriteWidgetCommand();
+		var result = await dispatcher.DispatchAsync(operation);
+
+		result.IsSuccess.Should().BeFalse();
+		result.Error.Should().BeOfType<ForbiddenAccessException>();
+		operation.OwnerId.Should().BeNull("identity alone must never stamp the caller's home owner");
+	}
+
+	[Fact]
 	public async Task Operation_with_no_authorization_source_is_denied_fail_closed() {
 
 		var user = TestUserState.CreateAuthenticated(

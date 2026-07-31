@@ -15,7 +15,8 @@ internal sealed class TestUserState : UserStateBase {
 		string id,
 		string name,
 		string[] roles,
-		AuthenticationBoundary boundary = AuthenticationBoundary.Tenant) {
+		AuthenticationBoundary boundary = AuthenticationBoundary.Tenant,
+		IApplicationUser? applicationUser = null) {
 
 		var identity = new ClaimsIdentity(
 			authenticationType: "test",
@@ -37,6 +38,9 @@ internal sealed class TestUserState : UserStateBase {
 		};
 		state.SetAuthenticationBoundary(boundary);
 		state.StartSession();
+		if (applicationUser is not null) {
+			state.SetApplicationUser(applicationUser);
+		}
 		return state;
 	}
 

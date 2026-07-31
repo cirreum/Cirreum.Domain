@@ -24,8 +24,8 @@ using System.Diagnostics;
 /// the gate is purely a Grants concern.
 /// </para>
 /// <para>
-/// All customization is in <see cref="IOperationGrantProvider"/>: bypass logic, grant lookup,
-/// and home-owner policy. This evaluator is sealed with no virtual extension points.
+/// All customization is in <see cref="IOperationGrantProvider"/>: bypass logic and grant
+/// lookup. This evaluator is sealed with no virtual extension points.
 /// </para>
 /// </remarks>
 public sealed class OperationGrantEvaluator(

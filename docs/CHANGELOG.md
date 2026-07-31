@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking
+
+- **The grant-factory orchestrator no longer merges an implicit home owner into the granted
+  set.** Cold-path resolution is now `ResolveGrantsAsync` alone: an empty granted owner set is
+  `Denied`, with no identity-derived fallback. Home-company membership access is expressed as a
+  grant record (e.g., a company-self-grant row) — permission-scoped, revocable, and auditable
+  like every other grant. ⚠️ **Apps must seed home grant rows BEFORE upgrading or tenant users
+  fail closed** — see `MIGRATION-v4.md` and the paired `Cirreum.Contracts` 4.0.0 release, which
+  removes `IOperationGrantProvider.ResolveHomeOwnerAsync`.
+
+### Added
+
+- **Dispatch-level regression test for records-only home semantics**: a caller whose
+  `ApplicationUser` carries a home `OwnerId` but holds zero grant records is denied, and no
+  owner is stamped. Fails loud if an implicit home-owner merge ever returns.
+
+### Updated
+
+- Re-pinned `Cirreum.Contracts` `3.0.0` → `4.0.0`.
+
 ## [3.0.0] - 2026-07-30
 
 ### Breaking

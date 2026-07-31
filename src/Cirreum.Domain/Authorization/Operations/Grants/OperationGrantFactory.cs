@@ -20,7 +20,7 @@ using Microsoft.Extensions.DependencyInjection;
 ///   <item><description>No <see cref="AuthorizationContext{TAuthorizableObject}.RequiredGrants"/> declared → <see cref="OperationGrant.Denied"/> (misconfig guard).</description></item>
 ///   <item><description>L1 check: scoped in-memory dictionary keyed by cache key string.</description></item>
 ///   <item><description>L2 check: <see cref="ICacheService"/> via <c>GetOrCreateAsync</c>.</description></item>
-///   <item><description>Cold path: invoke <see cref="IOperationGrantProvider.ResolveGrantsAsync"/> + <see cref="IOperationGrantProvider.ResolveHomeOwnerAsync"/> + merge.</description></item>
+///   <item><description>Cold path: invoke <see cref="IOperationGrantProvider.ResolveGrantsAsync"/>; empty owner set → <see cref="OperationGrant.Denied"/>.</description></item>
 /// </list>
 /// </remarks>
 sealed class OperationGrantFactory(
@@ -123,14 +123,9 @@ sealed class OperationGrantFactory(
 			.ResolveGrantsAsync(context, cancellationToken)
 			.ConfigureAwait(false);
 
-		var homeOwner = await grantResolver
-			.ResolveHomeOwnerAsync(context, cancellationToken)
-			.ConfigureAwait(false);
-
-		var combined = Combine(granted.OwnerIds, homeOwner);
-		return combined.Count == 0
+		return granted.OwnerIds.Count == 0
 			? OperationGrant.Denied
-			: OperationGrant.ForOwners(combined, granted.Extensions);
+			: OperationGrant.ForOwners(granted.OwnerIds, granted.Extensions);
 	}
 
 	// Cache configuration helpers —————————————————————————————
@@ -148,25 +143,4 @@ sealed class OperationGrantFactory(
 		return new CacheExpirationPolicy(Expiration: expiration);
 	}
 
-	// Owner merge ————————————————————————————————————————————
-
-	private static IReadOnlyList<string> Combine(IReadOnlyList<string> grantedOwners, string? homeOwner) {
-		ArgumentNullException.ThrowIfNull(grantedOwners);
-
-		if (string.IsNullOrEmpty(homeOwner)) {
-			return grantedOwners;
-		}
-
-		// Quick path: home owner already present.
-		for (var i = 0; i < grantedOwners.Count; i++) {
-			if (string.Equals(grantedOwners[i], homeOwner, StringComparison.Ordinal)) {
-				return grantedOwners;
-			}
-		}
-
-		var merged = new List<string>(grantedOwners.Count + 1);
-		merged.AddRange(grantedOwners);
-		merged.Add(homeOwner);
-		return merged;
-	}
 }
