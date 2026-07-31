@@ -4,7 +4,7 @@
 		<IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
 
 		<!-- Default version components (used when Version is not passed externally) -->
-		<MajorProductVersion Condition="'$(MajorProductVersion)' == ''">3</MajorProductVersion>
+		<MajorProductVersion Condition="'$(MajorProductVersion)' == ''">4</MajorProductVersion>
 		<MinorProductVersion Condition="'$(MinorProductVersion)' == ''">0</MinorProductVersion>
 		<PatchProductVersion Condition="'$(PatchProductVersion)' == ''">0</PatchProductVersion>
 
