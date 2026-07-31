@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Updated
+
+- Re-pinned `Cirreum.Contracts` `4.0.0` → `4.0.1` (carries `Cirreum.Kernel` 2.0.1, the
+  documentation-only patch completing the records-only grant semantics wave bottom-up).
+
 ## [4.0.0] - 2026-07-31
 
 ### Breaking
