@@ -26,7 +26,7 @@ Cirreum.Domain provides:
 
 ## Where it fits
 
-Cirreum.Domain is **L3 — the framework engine**, implemented over `Cirreum.Contracts` (L2, the contract surface) and `Cirreum.Kernel` (L1, which takes no Cirreum dependencies of its own), both referenced as published packages. It carries no host or provider dependencies, so the same domain core runs unchanged on a server, in WebAssembly, or in a serverless function.
+Cirreum.Domain is **L3 — the framework engine**, implemented over `Cirreum.Contracts` (L2, the contract surface), which carries `Cirreum.Kernel` (L1, which takes no Cirreum dependencies of its own) transitively. It references the foundation peers `Cirreum.Exceptions` and `Cirreum.Logging.Deferred` directly, all as published packages. It carries no host or provider dependencies, so the same domain core runs unchanged on a server, in WebAssembly, or in a serverless function.
 
 ## Contribution Guidelines
 

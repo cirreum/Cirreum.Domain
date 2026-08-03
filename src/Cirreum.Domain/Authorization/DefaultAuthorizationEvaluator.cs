@@ -11,12 +11,20 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Immutable;
+using System.Diagnostics;
 
 /// <summary>
 /// The default implementation of the <see cref="IAuthorizationEvaluator"/>.
 /// Runs the three-stage authorization pipeline.
 /// </summary>
 /// <remarks>
+/// <para>
+/// Identity gates run before any stage: the caller must be authenticated, must not be
+/// disabled, and must carry at least one registered role. The disabled gate denies only
+/// on an explicit <see cref="IApplicationUser.IsEnabled"/> of <see langword="false"/> —
+/// callers with no application-user record (operator and machine tracks, where
+/// disablement is enforced at the identity provider) pass through it.
+/// </para>
 /// <para>
 /// The pipeline is:
 /// </para>
@@ -114,13 +122,34 @@ sealed class DefaultAuthorizationEvaluator(
 				objectName,
 				ex.Message);
 
-			AuthorizationTelemetry.RecordDuration(
-				activity, objectName,
-				Timing.GetElapsedMilliseconds(startTimestamp),
-				AuthorizationTelemetry.DecisionDeny,
-				reason: "unauthenticated");
+			RecordPreflightDeny(
+				activity, objectName, startTimestamp,
+				AuthorizationTelemetry.StepAuthentication,
+				DenyCodes.AuthenticationRequired);
 
 			return Result.Fail(ex);
+		}
+
+		// Check the application user has not been disabled
+		if (userState.ApplicationUser is { IsEnabled: false }) {
+			//******************************************
+			//
+			// APPLICATION USER DISABLED
+			//
+			//******************************************
+			var disabledEx = new ForbiddenAccessException("User is disabled.");
+
+			logger.LogAuthorizingDenied(
+				userState.Name,
+				objectName,
+				disabledEx.Message);
+
+			RecordPreflightDeny(
+				activity, objectName, startTimestamp,
+				AuthorizationTelemetry.StepApplicationUser,
+				DenyCodes.UserDisabled);
+
+			return Result.Fail(disabledEx);
 		}
 
 		// Check cancellation early
@@ -175,11 +204,10 @@ sealed class DefaultAuthorizationEvaluator(
 				objectName,
 				emptyAuthContainerEx.Message);
 
-			AuthorizationTelemetry.RecordDuration(
-				activity, objectName,
-				Timing.GetElapsedMilliseconds(startTimestamp),
-				AuthorizationTelemetry.DecisionDeny,
-				reason: "no-authorizers");
+			RecordPreflightDeny(
+				activity, objectName, startTimestamp,
+				AuthorizationTelemetry.StepAuthorizerPresence,
+				DenyCodes.NoAuthorizersRegistered);
 
 			return Result.Fail(emptyAuthContainerEx);
 		}
@@ -207,11 +235,10 @@ sealed class DefaultAuthorizationEvaluator(
 				objectName,
 				noRolesEx.Message);
 
-			AuthorizationTelemetry.RecordDuration(
-				activity, objectName,
-				Timing.GetElapsedMilliseconds(startTimestamp),
-				AuthorizationTelemetry.DecisionDeny,
-				reason: "no-roles");
+			RecordPreflightDeny(
+				activity, objectName, startTimestamp,
+				AuthorizationTelemetry.StepRoles,
+				DenyCodes.NoRolesAssigned);
 
 			return Result.Fail(noRolesEx);
 		}
@@ -254,11 +281,15 @@ sealed class DefaultAuthorizationEvaluator(
 					.ConfigureAwait(false);
 
 				if (!grantResult.IsValid) {
-					// OperationGrantEvaluator already called RecordDecision() via EmitTelemetry()
+					// The one stage that does not go through RecordStageDeny: OperationGrantEvaluator
+					// records its own decision, with the scope and step dimensions only it knows
+					// (owner-scope vs self-identity, the caller's boundary). Recording again here
+					// would double-count it, so this path contributes the duration alone.
 					AuthorizationTelemetry.RecordDuration(
 						activity, objectName,
 						Timing.GetElapsedMilliseconds(startTimestamp),
 						AuthorizationTelemetry.DecisionDeny,
+						reason: DenyReason(grantResult),
 						denyStage: AuthorizationTelemetry.StageScope);
 					return this.DenyFromStage(grantResult.Errors, userState.Name, objectName);
 				}
@@ -272,18 +303,12 @@ sealed class DefaultAuthorizationEvaluator(
 					.ConfigureAwait(false);
 
 				if (!constraintResult.IsValid) {
-					AuthorizationTelemetry.RecordDecision(
-						stage: AuthorizationTelemetry.StageScope,
-						step: AuthorizationTelemetry.StepConstraint,
-						decision: AuthorizationTelemetry.DecisionDeny,
-						reason: constraintResult.Errors.FirstOrDefault()?.ErrorCode ?? "UNKNOWN",
-						evaluator: constraint.GetType().Name,
-						resourceType: objectName);
-					AuthorizationTelemetry.RecordDuration(
-						activity, objectName,
-						Timing.GetElapsedMilliseconds(startTimestamp),
-						AuthorizationTelemetry.DecisionDeny,
-						denyStage: AuthorizationTelemetry.StageScope);
+					RecordStageDeny(
+						activity, objectName, startTimestamp,
+						AuthorizationTelemetry.StageScope,
+						AuthorizationTelemetry.StepConstraint,
+						DenyReason(constraintResult),
+						evaluator: constraint.GetType().Name);
 					return this.DenyFromStage(constraintResult.Errors, userState.Name, objectName);
 				}
 			}
@@ -327,18 +352,12 @@ sealed class DefaultAuthorizationEvaluator(
 			}
 
 			if (stageFailures is not null) {
-				AuthorizationTelemetry.RecordDecision(
-					stage: AuthorizationTelemetry.StageResource,
-					step: AuthorizationTelemetry.StepResourceAuthorizer,
-					decision: AuthorizationTelemetry.DecisionDeny,
-					reason: stageFailures[0].ErrorCode ?? "UNKNOWN",
-					evaluator: objectAuthorizers[0].GetType().Name,
-					resourceType: objectName);
-				AuthorizationTelemetry.RecordDuration(
-					activity, objectName,
-					Timing.GetElapsedMilliseconds(startTimestamp),
-					AuthorizationTelemetry.DecisionDeny,
-					denyStage: AuthorizationTelemetry.StageResource);
+				RecordStageDeny(
+					activity, objectName, startTimestamp,
+					AuthorizationTelemetry.StageResource,
+					AuthorizationTelemetry.StepResourceAuthorizer,
+					DenyReason(stageFailures),
+					evaluator: objectAuthorizers[0].GetType().Name);
 				return this.DenyFromStage(stageFailures, userState.Name, objectName);
 			}
 
@@ -368,17 +387,11 @@ sealed class DefaultAuthorizationEvaluator(
 			}
 
 			if (stageFailures is not null) {
-				AuthorizationTelemetry.RecordDecision(
-					stage: AuthorizationTelemetry.StagePolicy,
-					step: AuthorizationTelemetry.StepPolicyAuthorizer,
-					decision: AuthorizationTelemetry.DecisionDeny,
-					reason: stageFailures[0].ErrorCode ?? "UNKNOWN",
-					resourceType: objectName);
-				AuthorizationTelemetry.RecordDuration(
-					activity, objectName,
-					Timing.GetElapsedMilliseconds(startTimestamp),
-					AuthorizationTelemetry.DecisionDeny,
-					denyStage: AuthorizationTelemetry.StagePolicy);
+				RecordStageDeny(
+					activity, objectName, startTimestamp,
+					AuthorizationTelemetry.StagePolicy,
+					AuthorizationTelemetry.StepPolicyAuthorizer,
+					DenyReason(stageFailures));
 				return this.DenyFromStage(stageFailures, userState.Name, objectName);
 			}
 
@@ -416,7 +429,7 @@ sealed class DefaultAuthorizationEvaluator(
 				activity, objectName,
 				Timing.GetElapsedMilliseconds(startTimestamp),
 				AuthorizationTelemetry.DecisionDeny,
-				reason: "error");
+				reason: DenyCodes.EvaluationError);
 
 			return Result.Fail(ex);
 		}
@@ -443,6 +456,70 @@ sealed class DefaultAuthorizationEvaluator(
 		}
 		return applicable;
 	}
+
+	/// <summary>
+	/// Records a Stage 0 denial to both the decision counter and the duration histogram.
+	/// The preflight gates deny before an <see cref="AuthorizationContext{T}"/> exists, so
+	/// they carry no scope or evaluator dimension — the step is what distinguishes them.
+	/// </summary>
+	private static void RecordPreflightDeny(
+		Activity? activity,
+		string objectName,
+		long startTimestamp,
+		string step,
+		string reason) {
+
+		AuthorizationTelemetry.RecordDecision(
+			stage: AuthorizationTelemetry.StagePreflight,
+			step: step,
+			decision: AuthorizationTelemetry.DecisionDeny,
+			reason: reason,
+			evaluator: nameof(DefaultAuthorizationEvaluator),
+			resourceType: objectName);
+
+		AuthorizationTelemetry.RecordDuration(
+			activity, objectName,
+			Timing.GetElapsedMilliseconds(startTimestamp),
+			AuthorizationTelemetry.DecisionDeny,
+			reason: reason,
+			denyStage: AuthorizationTelemetry.StagePreflight);
+	}
+
+	/// <summary>
+	/// Records a stage denial to both the decision counter and the duration histogram.
+	/// Pairing them here is what keeps the reason on the span as well as the counter —
+	/// <see cref="AuthorizationTelemetry.RecordDecision"/> tags neither.
+	/// </summary>
+	private static void RecordStageDeny(
+		Activity? activity,
+		string objectName,
+		long startTimestamp,
+		string stage,
+		string step,
+		string reason,
+		string? evaluator = null) {
+
+		AuthorizationTelemetry.RecordDecision(
+			stage: stage,
+			step: step,
+			decision: AuthorizationTelemetry.DecisionDeny,
+			reason: reason,
+			evaluator: evaluator,
+			resourceType: objectName);
+
+		AuthorizationTelemetry.RecordDuration(
+			activity, objectName,
+			Timing.GetElapsedMilliseconds(startTimestamp),
+			AuthorizationTelemetry.DecisionDeny,
+			reason: reason,
+			denyStage: stage);
+	}
+
+	private static string DenyReason(ValidationResult result)
+		=> result.Errors.FirstOrDefault()?.ErrorCode ?? DenyCodes.Unknown;
+
+	private static string DenyReason(List<ValidationFailure> failures)
+		=> failures.Count > 0 ? failures[0].ErrorCode ?? DenyCodes.Unknown : DenyCodes.Unknown;
 
 	private Result DenyFromStage(List<ValidationFailure> failures, string userName, string objectName) {
 		var message = string.Join(',', failures.Select(f => f.ErrorMessage));

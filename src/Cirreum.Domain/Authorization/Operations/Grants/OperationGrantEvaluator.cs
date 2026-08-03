@@ -50,12 +50,6 @@ public sealed class OperationGrantEvaluator(
 			return Pass();
 		}
 
-		// IsEnabled progressive check
-		if (!CheckApplicationUserEnabled(context)) {
-			EmitTelemetry(context, DenyCodes.UserDisabled);
-			return Deny(DenyCodes.UserDisabled, "User is disabled.");
-		}
-
 		// Self-scoped: identity match — fast path without grant resolution.
 		if (self is not null) {
 			return await this.EvaluateSelfAsync(context, self, cancellationToken)
@@ -201,17 +195,6 @@ public sealed class OperationGrantEvaluator(
 			return Deny(DenyCodes.OwnerNotInReach, "One or more requested owners are not in the caller's granted access.");
 		}
 		return Pass();
-	}
-
-	// Application user guard ————————————————————————————————
-
-	private static bool CheckApplicationUserEnabled<TAuthorizableObject>(AuthorizationContext<TAuthorizableObject> ctx)
-		where TAuthorizableObject : notnull, IAuthorizableObject {
-
-		if (!ctx.UserState.IsApplicationUserLoaded) {
-			return true;
-		}
-		return ctx.UserState.ApplicationUser is IOwnedApplicationUser { IsEnabled: true };
 	}
 
 	// Cache key context ————————————————————————————————————————

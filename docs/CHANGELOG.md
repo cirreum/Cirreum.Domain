@@ -9,6 +9,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **The disabled-user check no longer reads an absent application user as a disabled one.**
+  Callers with no application-user record — operator and machine tracks, where disablement is
+  enforced at the identity provider — were denied `USER_DISABLED` on every grantable
+  operation, before `ShouldBypassAsync` could grant them anything. The check now denies only
+  on an explicit `IsEnabled = false` and ignores application-user load state entirely.
+- **Disabled users whose type does not implement `IOwnedApplicationUser` are now denied.** The
+  check pattern-matched the owned interface before reading `IsEnabled`, which is declared on
+  `IApplicationUser`, so apps with no owner dimension on their user type were never covered.
+
+### Changed
+
+- **The disabled-user check moved from `OperationGrantEvaluator` to
+  `DefaultAuthorizationEvaluator`**, where it runs immediately after the authentication check
+  for every authorizable object. It previously ran only for operations implementing a
+  `IGrantable*Base` interface, so a disabled user retained full access to every non-grantable
+  operation. ⚠️ **Disabled callers who reach non-grantable operations today will be denied
+  after upgrade.** Apps that disable a user by stripping their roles will also see the denial
+  reason change from `has no assigned roles` to `User is disabled.` — the disabled gate now
+  runs ahead of the no-roles gate so the specific fact wins.
+- `USER_DISABLED` remains the deny code and the span reason, and the denial remains a 403
+  `ForbiddenAccessException`.
+- **The four preflight gates now record decisions.** Authentication, application-user,
+  roles, and authorizer-presence denials report `stage = preflight` with their own step and a
+  `DenyCodes` reason, so they appear on `cirreum.authz.decisions` for the first time. ⚠️ Their
+  reason values change with them: `"unauthenticated"` → `AUTHENTICATION_REQUIRED`,
+  `"no-roles"` → `NO_ROLES_ASSIGNED`, `"no-authorizers"` → `NO_AUTHORIZERS_REGISTERED`,
+  `"error"` → `EVALUATION_ERROR`. **Queries matching the old lowercase values will go quiet.**
+- **Constraint, object-authorizer, and policy denials now set a reason on the span.** They
+  recorded a reason to the decisions counter but passed only `denyStage` to the duration call,
+  and `RecordDecision` tags no activity — so those spans carried `decision=deny` with no
+  reason at all. Grant denials gain the same, having passed no reason either.
+- Denials with no `ErrorCode` report `DenyCodes.Unknown` rather than a `"UNKNOWN"` literal.
+
+### Added
+
+- **Six tests covering the disabled-user gate**, which previously had none: loaded-with-null
+  passes through to grant resolution, enabled and disabled owned users, an enabled and a
+  disabled user whose type is not owned, enforcement on a non-grantable operation, and the
+  disabled reason winning over the no-roles reason.
+
+### Updated
+
+- Re-pinned `Cirreum.Contracts` `4.0.1` → `4.1.0`, which carries the `preflight` stage, its four
+  steps, and the deny codes this release reports against.
+
 ## [4.0.1] - 2026-07-31
 
 ### Updated

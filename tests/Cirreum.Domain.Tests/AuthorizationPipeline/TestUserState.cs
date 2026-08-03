@@ -11,12 +11,19 @@ internal sealed class TestUserState : UserStateBase {
 
 	public static TestUserState CreateUnauthenticated() => new();
 
+	/// <param name="applicationUserResolved">
+	/// Marks application-user resolution as having been attempted even when
+	/// <paramref name="applicationUser"/> is null — the loaded-with-null state a real
+	/// accessor produces for callers whose scheme has no registered resolver. Without
+	/// this, "never attempted" and "attempted, none found" are indistinguishable in tests.
+	/// </param>
 	public static TestUserState CreateAuthenticated(
 		string id,
 		string name,
 		string[] roles,
 		AuthenticationBoundary boundary = AuthenticationBoundary.Tenant,
-		IApplicationUser? applicationUser = null) {
+		IApplicationUser? applicationUser = null,
+		bool applicationUserResolved = false) {
 
 		var identity = new ClaimsIdentity(
 			authenticationType: "test",
@@ -38,7 +45,7 @@ internal sealed class TestUserState : UserStateBase {
 		};
 		state.SetAuthenticationBoundary(boundary);
 		state.StartSession();
-		if (applicationUser is not null) {
+		if (applicationUser is not null || applicationUserResolved) {
 			state.SetApplicationUser(applicationUser);
 		}
 		return state;
