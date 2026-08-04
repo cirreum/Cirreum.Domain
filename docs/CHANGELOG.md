@@ -9,6 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.0] - 2026-08-04
+
+### Added
+
+- **`ApplicationUserEndpoint.Route`** (`/_cirreum/application-user`) — the framework-owned
+  application-user bootstrap route, shared by the server host (which maps it) and the
+  WebAssembly client (which calls it) so the two ends cannot drift. The `/_cirreum/` prefix
+  is the framework's reserved route namespace. Server mapping and client registration ship
+  in the paired `Cirreum.Runtime.Server` / `Cirreum.Runtime.Wasm` releases.
+
+### Updated
+
+- Re-pinned `Cirreum.Contracts` `4.1.0` → `4.2.0` (removes the dormant, never-referenced
+  `AuthorizationDenial` record; `DenyCodes` documentation now states codes reach telemetry only).
+
+### Fixed
+
+- **401/403 responses no longer surface raw JSON as the exception message.** `RemoteClient`
+  read the denial body as a plain string, so in production `ForbiddenAccessException.Message`
+  was a problem-details blob (`{"type":...,"title":"Forbidden",...}`) — which apps surfacing
+  `ex.Message` rendered to users. Denial bodies carrying JSON are now parsed and the safe
+  `Detail` used; non-JSON bodies (typically empty, from authentication middleware) fall back
+  to the raw string, then the reason phrase.
+
 ## [4.1.0] - 2026-08-03
 
 ### Fixed

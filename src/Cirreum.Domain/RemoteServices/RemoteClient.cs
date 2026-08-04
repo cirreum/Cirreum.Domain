@@ -1341,13 +1341,13 @@ public abstract class RemoteClient {
 		}
 
 		if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized) {
-			var err = await response.Content.ReadAsStringAsync();
-			throw new UnauthenticatedAccessException(err);
+			var message = await this.ReadDenialMessageAsync(response);
+			throw new UnauthenticatedAccessException(message);
 		}
 
 		if (response.StatusCode == System.Net.HttpStatusCode.Forbidden) {
-			var err = await response.Content.ReadAsStringAsync();
-			throw new ForbiddenAccessException(err);
+			var message = await this.ReadDenialMessageAsync(response);
+			throw new ForbiddenAccessException(message);
 		}
 
 		var exceptionModel = await this.ParseErrorResponse(response);
@@ -1357,6 +1357,30 @@ public abstract class RemoteClient {
 				exceptionModel.Detail);
 		}
 		throw new ApiException(exceptionModel);
+	}
+
+	/// <summary>
+	/// Reads the human-readable denial message from a 401/403 response.
+	/// </summary>
+	/// <param name="response">The denied HTTP response.</param>
+	/// <returns>The message to carry on the thrown exception.</returns>
+	/// <remarks>
+	/// A JSON body (problem details from the server's exception handling) is parsed and its
+	/// <c>Detail</c> used, so callers surface the safe message rather than a raw JSON blob.
+	/// A non-JSON body — typically empty, from authentication middleware — falls back to the
+	/// raw string, then the reason phrase.
+	/// </remarks>
+	private async Task<string> ReadDenialMessageAsync(HttpResponseMessage response) {
+		var contentType = response.Content.Headers.ContentType?.MediaType;
+		if (contentType is "application/problem+json" or "application/json") {
+			var model = await this.ParseErrorResponse(response);
+			return model.Detail ?? model.Title ?? response.ReasonPhrase ?? "Access denied";
+		}
+
+		var raw = await response.Content.ReadAsStringAsync();
+		return string.IsNullOrWhiteSpace(raw)
+			? response.ReasonPhrase ?? "Access denied"
+			: raw;
 	}
 
 	/// <summary>
