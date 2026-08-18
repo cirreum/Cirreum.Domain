@@ -3,42 +3,81 @@ namespace Cirreum.Presence;
 using Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
-/// Extension methods for configuring user presence services on <see cref="IUserPresenceBuilder"/>.
+/// Extension methods for configuring user presence services on
+/// <see cref="IUserPresenceBuilder"/>.
 /// </summary>
 public static class UserPresenceBuilderExtensions {
 
 	/// <summary>
-	/// Registers a custom user presence service implementation with the specified refresh interval.
+	/// Registers a custom user presence service for client-side presence monitoring.
 	/// </summary>
-	/// <typeparam name="TUserPresenceService">The type of the user presence service implementation that must implement <see cref="IUserPresenceService"/>.</typeparam>
-	/// <param name="builder">The <see cref="IUserPresenceBuilder"/> instance to configure.</param>
-	/// <param name="refreshInterval">The interval in milliseconds at which the presence service should refresh user presence status.</param>
-	/// <returns>The <see cref="IUserPresenceBuilder"/> instance for method chaining.</returns>
-	/// <exception cref="InvalidOperationException">Thrown when called outside of a browser environment (not Blazor WebAssembly).</exception>
+	/// <typeparam name="TUserPresenceService">
+	/// The <see cref="IUserPresenceService"/> implementation to register.
+	/// </typeparam>
+	/// <param name="builder">
+	/// The <see cref="IUserPresenceBuilder"/> to configure.
+	/// </param>
+	/// <param name="refreshInterval">
+	/// An optional interval, in milliseconds, between presence refreshes. When
+	/// <see langword="null"/>, the existing
+	/// <see cref="UserPresenceMonitorOptions.RefreshInterval"/> configuration is
+	/// preserved. A value of <c>0</c> disables the monitor. Positive values must be
+	/// greater than <see cref="UserPresenceMonitorOptions.MinimumRefreshInterval"/>.
+	/// </param>
+	/// <returns>
+	/// The configured <see cref="IUserPresenceBuilder"/> for further chaining.
+	/// </returns>
 	/// <remarks>
-	/// This method registers the specified presence service as a scoped service and configures the monitoring options
-	/// to use the provided refresh interval. The service will be used to periodically update user presence information.
 	/// <para>
-	/// This method can only be called in browser environments (Blazor WebAssembly). Attempting to use it in server-side
-	/// environments will result in an <see cref="InvalidOperationException"/>.
+	/// Registers <typeparamref name="TUserPresenceService"/> as the scoped
+	/// <see cref="IUserPresenceService"/>.
+	/// </para>
+	/// <para>
+	/// When <paramref name="refreshInterval"/> is specified, it is applied through
+	/// post-configuration and therefore overrides earlier configuration of
+	/// <see cref="UserPresenceMonitorOptions.RefreshInterval"/>. When omitted, this
+	/// method does not modify the configured refresh interval.
+	/// </para>
+	/// <para>
+	/// Presence monitoring is supported only in browser environments, such as
+	/// Blazor WebAssembly.
 	/// </para>
 	/// </remarks>
+	/// <exception cref="InvalidOperationException">
+	/// Thrown when presence monitoring is configured outside a browser environment.
+	/// </exception>
+	/// <exception cref="ArgumentOutOfRangeException">
+	/// <paramref name="refreshInterval"/> is negative or is between <c>1</c> and
+	/// <c>5000</c> milliseconds, inclusive.
+	/// </exception>
 	public static IUserPresenceBuilder AddPresenceService<TUserPresenceService>(
-	   this IUserPresenceBuilder builder,
-	   int refreshInterval)
-	   where TUserPresenceService : class, IUserPresenceService {
+		this IUserPresenceBuilder builder,
+		int? refreshInterval = null)
+		where TUserPresenceService : class, IUserPresenceService {
 
 		if (!OperatingSystem.IsBrowser()) {
-			throw new InvalidOperationException("User presence monitor is only allowed on the client.");
+			throw new InvalidOperationException(
+				"User presence monitoring is only supported in a browser environment.");
+		}
+
+		if (refreshInterval is < 0 ||
+			refreshInterval is > 0 and <= UserPresenceMonitorOptions.MinimumRefreshInterval) {
+
+			throw new ArgumentOutOfRangeException(
+				nameof(refreshInterval),
+				refreshInterval,
+				"Presence refresh interval must be greater than 5 seconds, or 0 to disable monitoring.");
 		}
 
 		builder.Services.AddScoped<IUserPresenceService, TUserPresenceService>();
-		builder.Services.PostConfigure<UserPresenceMonitorOptions>(o =>
-			o.RefreshInterval = refreshInterval
-		);
+
+		if (refreshInterval is not null) {
+			builder.Services.PostConfigure<UserPresenceMonitorOptions>(options =>
+				options.RefreshInterval = refreshInterval.Value
+			);
+		}
 
 		return builder;
-
 	}
 
 }
