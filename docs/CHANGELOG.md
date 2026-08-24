@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.3.0] - 2026-08-23
+
+### Added
+
+* **`RemoteConnectionBase.OnConnectedAsync` / `OnReconnectedAsync`** — protected virtual
+  lifecycle hooks, no-ops by default, called after the transport connects and before the
+  connection reports `Connected`. `OnReconnectedAsync` gives server-side session state that
+  does not survive a transport reconnect — group membership, presence announcements — a named
+  place to be restored, instead of each transport implementation inventing one. An exception
+  from either hook fails the attempt.
+
+### Fixed
+
+* **`RemoteConnectionBase.TransitionTo` applies its state change atomically.** The transition
+  was a read-modify-write on an unsynchronized field. Transports raise state changes from
+  transport callbacks and background reconnect loops while a caller may be inside
+  `ConnectAsync` or `DisconnectAsync`, so two concurrent transitions could both observe the
+  same prior state and each raise `StateChanged` for one logical change. `State` now reads
+  through `Volatile.Read` and the swap runs through `Interlocked.Exchange`: every raised event
+  reports the state the connection actually moved from, and one logical transition raises one
+  event. Concurrent transitions may still raise their events in an order other than the one
+  they were applied in; `State` is the authority on the current value.
+
 ### Updated
 
 - Updated NuGet packages.

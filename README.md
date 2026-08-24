@@ -20,7 +20,7 @@ Cirreum.Domain provides:
 - **State** — `ScopedNotificationState`
 - **Presence** — `UserPresenceBuilder`
 - **Profile Enrichment** — `ClaimsUserProfileEnricher`, the default claims-based implementation of `Cirreum.Contracts`' `IUserProfileEnricher`
-- **RemoteServices** — `RemoteClient`, the connection base, and `ApplicationUserEndpoint` (the framework-owned `/_cirreum/application-user` bootstrap route shared by the server host and the WebAssembly client)
+- **RemoteServices** — `RemoteClient` for request/response; `RemoteConnectionBase` for long-lived bidirectional channels, owning the connection state machine (atomic transitions, `StateChanged`) and the `OnConnectedAsync` / `OnReconnectedAsync` lifecycle hooks that transport implementations build on; and `ApplicationUserEndpoint` (the framework-owned `/_cirreum/application-user` bootstrap route shared by the server host and the WebAssembly client)
 - **FileSystem** — `FileSystemUtils` and the CSV implementations
 - **Registration & extensions** — `AddDomainServices` (the default Conductor pipeline + authorization wiring), `ResultExtensions`, `SystemIOExtensions`, and format helpers
 

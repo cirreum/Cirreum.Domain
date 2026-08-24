@@ -12,12 +12,16 @@
     <File Path="docs/BACKLOG.md" />
     <File Path="docs/CHANGELOG.md" />
     <File Path="docs/MIGRATION-v2.md" />
-    <File Path="docs/RELEASE-NOTES-v2.0.0.md" />
+    <File Path="docs/MIGRATION-v3.md" />
+    <File Path="docs/MIGRATION-v4.md" />
     <File Path="docs/RELEASE-NOTES-v1.0.0.md" />
     <File Path="docs/RELEASE-NOTES-v1.1.0.md" />
     <File Path="docs/RELEASE-NOTES-v1.1.1.md" />
     <File Path="docs/RELEASE-NOTES-v1.3.0.md" />
+    <File Path="docs/RELEASE-NOTES-v2.0.0.md" />
     <File Path="docs/RELEASE-NOTES-v4.1.0.md" />
+    <File Path="docs/RELEASE-NOTES-v4.2.0.md" />
+    <File Path="docs/RELEASE-NOTES-v4.3.0.md" />
   </Folder>
   <Folder Name="/publish/">
     <File Path=".github/workflows/publish.yml" />
