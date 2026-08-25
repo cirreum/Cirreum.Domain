@@ -1,6 +1,6 @@
-namespace Cirreum.Domain.Tests.RemoteServices;
+namespace Cirreum.Domain.Tests.RemoteServices.Connections;
 
-using Cirreum.RemoteServices;
+using Cirreum.RemoteServices.Connections;
 using Microsoft.Extensions.Logging.Abstractions;
 
 public class RemoteConnectionBaseTests {

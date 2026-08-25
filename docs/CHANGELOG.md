@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking
+
+* **`RemoteConnectionBase` moves to `Cirreum.RemoteServices.Connections`**, following the contracts
+  it implements (`Cirreum.Contracts` 5.0.0). No member of it changed.
+
+  `Cirreum.RemoteServices` held two features. A remote service is something you call — the exchange
+  is the unit of work and the caller always initiates. A remote connection is something you hold
+  open — the channel is the unit, it has a lifetime the application observes, and either end may
+  speak first. The second is a relationship with a remote service rather than a peer of one, so it
+  nests, mirroring `Cirreum.Invocation.Connections` on the inbound side.
+
+  `RemoteClient` and the rest of `Cirreum.RemoteServices` are unchanged. See
+  [MIGRATION-v5.md](MIGRATION-v5.md).
+
+### Updated
+
+- `Cirreum.Contracts` 5.0.0.
+
 ## [4.3.1] - 2026-08-23
 
 ### Updated
