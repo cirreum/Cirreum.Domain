@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Updated
+
+- Re-pinned `Cirreum.Contracts` `5.0.0` → `6.0.0`. No consumed surface changed: the grant
+  extension bag is passed straight through from `OperationGrantResult` to `OperationGrant`, so both
+  sides moved together, and this package exposes neither type publicly — `OperationGrantFactory`
+  and `DefaultOperationGrantAccessor` are internal. An application reads a grant through
+  `IOperationGrantAccessor`, which `Cirreum.Contracts` declares.
+- Updated NuGet packages.
+
 ## [5.0.0] - 2026-08-25
 
 ### Breaking
