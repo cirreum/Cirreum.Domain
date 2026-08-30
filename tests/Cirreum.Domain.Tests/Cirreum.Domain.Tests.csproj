@@ -12,7 +12,7 @@
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
-		<PackageReference Include="FluentAssertions" Version="8.10.0" />
+		<PackageReference Include="AwesomeAssertions" Version="9.6.0" />
 		<PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.11" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.11" />
 		<PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.11" />
@@ -20,7 +20,7 @@
 
 	<ItemGroup>
 		<Using Include="Xunit" />
-		<Using Include="FluentAssertions" />
+		<Using Include="AwesomeAssertions" />
 		<Using Include="System.Security.Claims" />
 	</ItemGroup>
 
