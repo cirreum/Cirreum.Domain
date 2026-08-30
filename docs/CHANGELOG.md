@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.1] - 2026-08-29
+
 ### Updated
 
 - Re-pinned `Cirreum.Contracts` `5.0.0` → `6.0.0`. No consumed surface changed: the grant
