@@ -32,7 +32,7 @@ public static class CacheTelemetry {
 	/// <summary>Tag: cache operation status (<see cref="StatusHit"/> / <see cref="StatusMiss"/>).</summary>
 	public const string StatusTag = "cirreum.cache.status";
 
-	/// <summary>Tag: cache key identifying the operation.</summary>
+	/// <summary>Tag: cache key identifying the operation. Not recorded on cache metrics.</summary>
 	public const string CallerTag = "cirreum.cache.caller";
 
 	/// <summary>Tag: subsystem that triggered the cache operation (e.g. "query-caching", "grant-resolution").</summary>
@@ -65,7 +65,7 @@ public static class CacheTelemetry {
 	/// <summary>
 	/// Records a cache operation (hit or miss) with its duration.
 	/// </summary>
-	/// <param name="caller">Cache key identifying the operation.</param>
+	/// <param name="caller">Cache key identifying the operation. Not recorded.</param>
 	/// <param name="isHit"><see langword="true"/> if the value was served from cache; <see langword="false"/> if the factory executed.</param>
 	/// <param name="durationMs">Operation duration in milliseconds.</param>
 	/// <param name="consumer">Subsystem that triggered the operation (e.g. "query-caching", "grant-resolution").</param>
@@ -75,7 +75,6 @@ public static class CacheTelemetry {
 
 		var tags = new TagList {
 			{ StatusTag, status },
-			{ CallerTag, caller },
 			{ ConsumerTag, consumer }
 		};
 

@@ -3,7 +3,6 @@ namespace Cirreum.Conductor;
 using Cirreum.Diagnostics;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
-using System.Runtime.CompilerServices;
 
 /// <summary>
 /// Provides telemetry capabilities for operation processing including metrics and distributed tracing.
@@ -32,15 +31,6 @@ internal static class OperationTelemetry {
 		ConductorTelemetry.OperationsDurationHistogram,
 		unit: "ms",
 		description: "Operation processing duration in milliseconds");
-
-
-	// Helper to check if metrics should be recorded
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public static bool HasListeners() {
-		// Don't even create the meter if there are no listeners on the activity source
-		// This is a good proxy for "is telemetry enabled?"
-		return _activitySource.HasListeners();
-	}
 
 	#region Activity Management (Distributed Tracing)
 
@@ -162,9 +152,6 @@ internal static class OperationTelemetry {
 
 		var tags = new TagList {
 			{ ConductorTelemetry.OperationTypeTag, operationName },
-			{ ConductorTelemetry.OperationSucceededTag, success },
-			{ ConductorTelemetry.OperationFailedTag, !success && !canceled },
-			{ ConductorTelemetry.OperationCanceledTag, canceled },
 			{ ConductorTelemetry.OperationStatusTag, canceled ? "canceled" : success ? "success" : "failure" }
 		};
 

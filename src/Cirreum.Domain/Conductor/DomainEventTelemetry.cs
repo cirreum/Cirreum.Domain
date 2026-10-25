@@ -36,19 +36,12 @@ internal static class DomainEventTelemetry {
 
 	internal static Activity? StartActivity(string domainEventName) {
 		var activity = _activitySource.StartActivity(
-			"Publish domainEvent",
+			"Publish Domain Event",
 			DomainContext.EntryPointActivityKind);
 
-		activity?.SetTag("domainEvent.type", domainEventName);
+		activity?.SetTag(ConductorTelemetry.DomainEventTypeTag, domainEventName);
 
 		return activity;
-	}
-
-	internal static void StopActivity(Activity? activity) {
-		if (activity is not null) {
-			activity.Stop();
-			activity.Dispose();
-		}
 	}
 
 	internal static void SetActivitySuccess(Activity? activity) {
@@ -58,7 +51,7 @@ internal static class DomainEventTelemetry {
 	internal static void SetActivityError(Activity? activity, Exception ex) {
 		if (activity is not null) {
 			activity.SetStatus(ActivityStatusCode.Error, ex.Message);
-			activity.SetTag("error.type", ex.GetType().Name);
+			activity.SetTag(ConductorTelemetry.ErrorTypeTag, ex.GetType().Name);
 			activity.AddException(ex);
 		}
 	}
@@ -66,7 +59,7 @@ internal static class DomainEventTelemetry {
 	internal static void SetActivityCanceled(Activity? activity, OperationCanceledException oce) {
 		if (activity is not null) {
 			activity.SetStatus(ActivityStatusCode.Error, "Canceled");
-			activity.SetTag("domainEvent.canceled", true);
+			activity.SetTag(ConductorTelemetry.DomainEventCanceledTag, true);
 			activity.AddException(oce);
 		}
 	}
@@ -82,10 +75,10 @@ internal static class DomainEventTelemetry {
 		double durationMs) {
 
 		var tags = new TagList {
-			{ "domainEvent.type", domainEventName },
-			{ "domainEvent.strategy", strategy.ToString() },
-			{ "domainEvent.handler_count", handlerCount },
-			{ "domainEvent.status", "success" }
+			{ ConductorTelemetry.DomainEventTypeTag, domainEventName },
+			{ ConductorTelemetry.DomainEventStrategyTag, strategy.ToString() },
+			{ ConductorTelemetry.DomainEventHandlerCountTag, handlerCount },
+			{ ConductorTelemetry.DomainEventStatusTag, "success" }
 		};
 
 		_domainEventCounter.Add(1, tags);
@@ -100,11 +93,11 @@ internal static class DomainEventTelemetry {
 		Exception error) {
 
 		var tags = new TagList {
-			{ "domainEvent.type", domainEventName },
-			{ "domainEvent.strategy", strategy.ToString() },
-			{ "domainEvent.handler_count", handlerCount },
-			{ "domainEvent.status", "failure" },
-			{ "error.type", error.GetType().Name }
+			{ ConductorTelemetry.DomainEventTypeTag, domainEventName },
+			{ ConductorTelemetry.DomainEventStrategyTag, strategy.ToString() },
+			{ ConductorTelemetry.DomainEventHandlerCountTag, handlerCount },
+			{ ConductorTelemetry.DomainEventStatusTag, "failure" },
+			{ ConductorTelemetry.ErrorTypeTag, error.GetType().Name }
 		};
 
 		_domainEventCounter.Add(1, tags);
@@ -114,13 +107,17 @@ internal static class DomainEventTelemetry {
 
 	internal static void RecordCanceled(
 		string domainEventName,
+		PublisherStrategy strategy,
+		int handlerCount,
 		double durationMs,
 		OperationCanceledException oce) {
 
 		var tags = new TagList {
-			{ "domainEvent.type", domainEventName },
-			{ "domainEvent.status", "canceled" },
-			{ "error.type", oce.GetType().Name }
+			{ ConductorTelemetry.DomainEventTypeTag, domainEventName },
+			{ ConductorTelemetry.DomainEventStrategyTag, strategy.ToString() },
+			{ ConductorTelemetry.DomainEventHandlerCountTag, handlerCount },
+			{ ConductorTelemetry.DomainEventStatusTag, "canceled" },
+			{ ConductorTelemetry.ErrorTypeTag, oce.GetType().Name }
 		};
 
 		_domainEventCounter.Add(1, tags);
@@ -129,7 +126,7 @@ internal static class DomainEventTelemetry {
 
 	internal static void RecordNoHandlers(string domainEventName) {
 		var tags = new TagList {
-			{ "domainEvent.type", domainEventName }
+			{ ConductorTelemetry.DomainEventTypeTag, domainEventName }
 		};
 
 		_domainEventNoHandlersCounter.Add(1, tags);

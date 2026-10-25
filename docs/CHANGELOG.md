@@ -9,6 +9,73 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Domain-event tag constants on `ConductorTelemetry`:** `DomainEventTypeTag`,
+  `DomainEventStrategyTag`, `DomainEventHandlerCountTag`, `DomainEventStatusTag`, and
+  `DomainEventCanceledTag`.
+
+### Changed
+
+- **Domain instruments adopt the `cirreum.<area>.*` naming used by every other Cirreum meter.**
+  Update dashboards, alerts, and saved queries:
+
+  | Before | After |
+  | ------ | ----- |
+  | `conductor.operations.total` | `cirreum.conductor.operations` |
+  | `conductor.operations.failed` | `cirreum.conductor.operations.failed` |
+  | `conductor.operations.canceled` | `cirreum.conductor.operations.canceled` |
+  | `conductor.operations.duration` | `cirreum.conductor.operation.duration` |
+  | `conductor.domain_events.total` | `cirreum.conductor.domain_events` |
+  | `conductor.domain_events.failed` | `cirreum.conductor.domain_events.failed` |
+  | `conductor.domain_events.no_handlers` | `cirreum.conductor.domain_events.no_handlers` |
+  | `conductor.domain_events.duration` | `cirreum.conductor.domain_event.duration` |
+  | `remote_services.client.requests` | `cirreum.remote_services.client.requests` |
+  | `remote_services.client.requests.failed` | `cirreum.remote_services.client.requests.failed` |
+  | `remote_services.client.requests.canceled` | `cirreum.remote_services.client.requests.canceled` |
+  | `remote_services.client.request.duration` | `cirreum.remote_services.client.request.duration` |
+
+  The `.total` suffix is dropped: a Prometheus exporter appends `_total` to counters, so the old
+  names exported as `…_total_total`. The `ConductorTelemetry` constants keep their names; their
+  values changed. Units are unchanged (`ms`). Cache instruments are unchanged.
+- **Domain-event tags are snake_case:** `domainEvent.type`, `.strategy`, `.handler_count`,
+  `.status`, and `.canceled` are now `domain_event.*`. The publish span is named
+  `Publish Domain Event` (was `Publish domainEvent`).
+- **Operation and `RemoteClient` metrics no longer carry the boolean outcome tags.**
+  `operation.succeeded` / `.failed` / `.canceled` and `remote_services.request.succeeded` /
+  `.failed` / `.canceled` restated `operation.status` and `remote_services.request.status`; filter
+  on the status tag. The `failed` and `canceled` tags remain on the spans.
+  `ConductorTelemetry.OperationSucceededTag` remains for compatibility and is not recorded.
+- **Canceled domain events carry `domain_event.strategy` and `domain_event.handler_count`,** like
+  the success and failure measurements.
+
+### Fixed
+
+- **Conductor metrics are recorded whether or not the dispatch is traced.** Operation and
+  domain-event metrics were recorded only when the dispatch or publish span existed. With no
+  tracing listener registered no Conductor metrics were emitted at all, and under trace sampling
+  the counters and histograms reflected the sampled fraction of traffic only.
+- **Cache metrics no longer carry the cache key.** `CacheTelemetry.RecordOperation` tagged
+  `cirreum.cache.operations` and `cirreum.cache.duration` with `cirreum.cache.caller`, whose value
+  is the cache key. Query keys vary per parameter set and grant keys embed the caller id, so every
+  new key opened a new metric series and caller ids were exported to the metrics backend. Cache
+  metrics are now tagged with `cirreum.cache.status` and `cirreum.cache.consumer` only.
+  `CacheTelemetry.CallerTag` and the `caller` parameter remain for compatibility and are not
+  recorded.
+- **`RemoteClient` metrics no longer carry the request path.** `url.path` held the endpoint as
+  called, so each distinct resource id opened a new series on every `RemoteClient` instrument. The
+  path remains on the span.
+- **`RemoteClient` starts the HTTP request inside its span.** The request task was created before
+  the `HTTP {method}` activity started, so the request ran under the caller's activity — an
+  instrumented `HttpClient` span became a sibling of the `RemoteClient` span instead of its child —
+  and the recorded duration excluded the synchronous portion of the send. A request that threw
+  synchronously also escaped the `Result` handling. The request is now started inside the span and
+  the `try` block.
+
+### Updated
+
+- Updated NuGet packages.
+
 ## [5.0.1] - 2026-08-29
 
 ### Updated

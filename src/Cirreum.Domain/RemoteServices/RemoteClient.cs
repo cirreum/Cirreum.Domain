@@ -231,7 +231,7 @@ public abstract class RemoteClient {
 		return this.ProcessJsonAsResultAsync<T>(
 			HttpMethod.Get.Method,
 			endpoint,
-			this.Client.GetAsync(endpoint, cancellationToken),
+			() => this.Client.GetAsync(endpoint, cancellationToken),
 			cancellationToken);
 	}
 
@@ -256,7 +256,7 @@ public abstract class RemoteClient {
 					? null
 					: new ResponseWithHeaders<T>(data, response.Headers, response.Content.Headers);
 			},
-			this.Client.GetAsync(endpoint, cancellationToken),
+			() => this.Client.GetAsync(endpoint, cancellationToken),
 			cancellationToken);
 	}
 
@@ -281,7 +281,7 @@ public abstract class RemoteClient {
 		return this.ProcessJsonAsResultAsync<T>(
 			HttpMethod.Post.Method,
 			endpoint,
-			this.Client.SendAsync(request, cancellationToken),
+			() => this.Client.SendAsync(request, cancellationToken),
 			cancellationToken);
 
 	}
@@ -305,7 +305,7 @@ public abstract class RemoteClient {
 		return this.ProcessJsonAsResultAsync<T>(
 			HttpMethod.Post.Method,
 			endpoint,
-			this.Client.SendAsync(request, cancellationToken),
+			() => this.Client.SendAsync(request, cancellationToken),
 			cancellationToken);
 
 	}
@@ -337,7 +337,7 @@ public abstract class RemoteClient {
 					? null
 					: new ResponseWithHeaders<T>(data, response.Headers, response.Content.Headers);
 			},
-			this.Client.SendAsync(request, cancellationToken),
+			() => this.Client.SendAsync(request, cancellationToken),
 			cancellationToken);
 	}
 
@@ -367,7 +367,7 @@ public abstract class RemoteClient {
 					? null
 					: new ResponseWithHeaders<T>(data, response.Headers, response.Content.Headers);
 			},
-			this.Client.SendAsync(request, cancellationToken),
+			() => this.Client.SendAsync(request, cancellationToken),
 			cancellationToken);
 	}
 
@@ -385,7 +385,7 @@ public abstract class RemoteClient {
 		return this.ProcessJsonAsResultAsync<T>(
 			HttpMethod.Put.Method,
 			endpoint,
-			this.Client.SendAsync(request, cancellationToken),
+			() => this.Client.SendAsync(request, cancellationToken),
 			cancellationToken);
 	}
 
@@ -408,7 +408,7 @@ public abstract class RemoteClient {
 		return this.ProcessJsonAsResultAsync<T>(
 			HttpMethod.Put.Method,
 			endpoint,
-			this.Client.SendAsync(request, cancellationToken),
+			() => this.Client.SendAsync(request, cancellationToken),
 			cancellationToken);
 
 	}
@@ -427,7 +427,7 @@ public abstract class RemoteClient {
 		return this.ProcessJsonAsResultAsync<T>(
 			HttpMethod.Patch.Method,
 			endpoint,
-			this.Client.SendAsync(request, cancellationToken),
+			() => this.Client.SendAsync(request, cancellationToken),
 			cancellationToken);
 	}
 
@@ -451,7 +451,7 @@ public abstract class RemoteClient {
 		return this.ProcessJsonAsResultAsync<T>(
 			HttpMethod.Patch.Method,
 			endpoint,
-			this.Client.SendAsync(request, cancellationToken),
+			() => this.Client.SendAsync(request, cancellationToken),
 			cancellationToken);
 
 	}
@@ -470,7 +470,7 @@ public abstract class RemoteClient {
 		return this.ProcessJsonAsResultAsync<T>(
 			HttpMethod.Delete.Method,
 			endpoint,
-			this.Client.DeleteAsync(endpoint, cancellationToken),
+			() => this.Client.DeleteAsync(endpoint, cancellationToken),
 			cancellationToken);
 
 	}
@@ -492,7 +492,7 @@ public abstract class RemoteClient {
 		return this.ProcessStringAsResultAsync(
 			HttpMethod.Get.Method,
 			endpoint,
-			this.Client.GetAsync(endpoint, cancellationToken),
+			() => this.Client.GetAsync(endpoint, cancellationToken),
 			cancellationToken);
 
 	}
@@ -511,7 +511,7 @@ public abstract class RemoteClient {
 		return this.ProcessStringAsResultAsync(
 			HttpMethod.Post.Method,
 			endpoint,
-			this.Client.SendAsync(request, cancellationToken),
+			() => this.Client.SendAsync(request, cancellationToken),
 			cancellationToken);
 
 	}
@@ -535,7 +535,7 @@ public abstract class RemoteClient {
 		return this.ProcessStringAsResultAsync(
 			HttpMethod.Post.Method,
 			endpoint,
-			this.Client.SendAsync(request, cancellationToken),
+			() => this.Client.SendAsync(request, cancellationToken),
 			cancellationToken);
 
 	}
@@ -559,7 +559,7 @@ public abstract class RemoteClient {
 		return this.ProcessStringAsResultAsync(
 			HttpMethod.Post.Method,
 			endpoint,
-			this.Client.SendAsync(request, cancellationToken),
+			() => this.Client.SendAsync(request, cancellationToken),
 			cancellationToken);
 
 	}
@@ -583,7 +583,7 @@ public abstract class RemoteClient {
 		return this.ProcessStringAsResultAsync(
 			HttpMethod.Patch.Method,
 			endpoint,
-			this.Client.SendAsync(request, cancellationToken),
+			() => this.Client.SendAsync(request, cancellationToken),
 			cancellationToken);
 
 	}
@@ -607,7 +607,7 @@ public abstract class RemoteClient {
 		return this.ProcessStringAsResultAsync(
 			HttpMethod.Patch.Method,
 			endpoint,
-			this.Client.SendAsync(request, cancellationToken),
+			() => this.Client.SendAsync(request, cancellationToken),
 			cancellationToken);
 
 	}
@@ -628,7 +628,7 @@ public abstract class RemoteClient {
 		return this.ProcessStreamAsResultAsync(
 			HttpMethod.Get.Method,
 			endpoint,
-			this.Client.GetAsync(endpoint, cancellationToken),
+			() => this.Client.GetAsync(endpoint, cancellationToken),
 			cancellationToken);
 	}
 
@@ -650,7 +650,7 @@ public abstract class RemoteClient {
 		return this.ProcessStreamAsResultAsync(
 			HttpMethod.Post.Method,
 			endpoint,
-			this.Client.SendAsync(request, cancellationToken),
+			() => this.Client.SendAsync(request, cancellationToken),
 			cancellationToken);
 	}
 
@@ -671,7 +671,7 @@ public abstract class RemoteClient {
 		return this.ProcessStreamAsResultAsync(
 			HttpMethod.Post.Method,
 			endpoint,
-			this.Client.SendAsync(request, cancellationToken),
+			() => this.Client.SendAsync(request, cancellationToken),
 			cancellationToken);
 	}
 
@@ -692,7 +692,7 @@ public abstract class RemoteClient {
 		return this.ProcessStreamAsResultAsync(
 			HttpMethod.Patch.Method,
 			endpoint,
-			this.Client.SendAsync(request, cancellationToken),
+			() => this.Client.SendAsync(request, cancellationToken),
 			cancellationToken);
 	}
 
@@ -713,7 +713,7 @@ public abstract class RemoteClient {
 		return this.ProcessStreamAsResultAsync(
 			HttpMethod.Patch.Method,
 			endpoint,
-			this.Client.SendAsync(request, cancellationToken),
+			() => this.Client.SendAsync(request, cancellationToken),
 			cancellationToken);
 	}
 
@@ -733,7 +733,7 @@ public abstract class RemoteClient {
 		return this.ProcessBytesAsResultAsync(
 			HttpMethod.Get.Method,
 			endpoint,
-			this.Client.GetAsync(endpoint, cancellationToken),
+			() => this.Client.GetAsync(endpoint, cancellationToken),
 			cancellationToken);
 	}
 
@@ -755,7 +755,7 @@ public abstract class RemoteClient {
 		return this.ProcessBytesAsResultAsync(
 			HttpMethod.Post.Method,
 			endpoint,
-			this.Client.SendAsync(request, cancellationToken),
+			() => this.Client.SendAsync(request, cancellationToken),
 			cancellationToken);
 	}
 
@@ -776,7 +776,7 @@ public abstract class RemoteClient {
 		return this.ProcessBytesAsResultAsync(
 			HttpMethod.Post.Method,
 			endpoint,
-			this.Client.SendAsync(request, cancellationToken),
+			() => this.Client.SendAsync(request, cancellationToken),
 			cancellationToken);
 	}
 
@@ -797,7 +797,7 @@ public abstract class RemoteClient {
 		return this.ProcessFileAsResultAsync(
 			HttpMethod.Get.Method,
 			endpoint,
-			this.Client.GetAsync(endpoint, cancellationToken),
+			() => this.Client.GetAsync(endpoint, cancellationToken),
 			cancellationToken);
 	}
 
@@ -820,7 +820,7 @@ public abstract class RemoteClient {
 		return this.ProcessFileAsResultAsync(
 			HttpMethod.Post.Method,
 			endpoint,
-			this.Client.SendAsync(request, cancellationToken),
+			() => this.Client.SendAsync(request, cancellationToken),
 			cancellationToken);
 	}
 
@@ -842,7 +842,7 @@ public abstract class RemoteClient {
 		return this.ProcessFileAsResultAsync(
 			HttpMethod.Post.Method,
 			endpoint,
-			this.Client.SendAsync(request, cancellationToken),
+			() => this.Client.SendAsync(request, cancellationToken),
 			cancellationToken);
 	}
 
@@ -857,7 +857,7 @@ public abstract class RemoteClient {
 	/// <param name="cancellationToken">Cancellation token for the operation.</param>
 	/// <returns>A task that represents the asynchronous operation.</returns>
 	protected Task<Result> GetAsync(string endpoint, CancellationToken cancellationToken = default) =>
-		this.ProcessWithTelemetryAsync(HttpMethod.Get.Method, endpoint, this.Client.GetAsync(endpoint, cancellationToken));
+		this.ProcessWithTelemetryAsync(HttpMethod.Get.Method, endpoint, () => this.Client.GetAsync(endpoint, cancellationToken));
 
 	/// <summary>
 	/// Sends a POST request with JSON content and no response content processing.
@@ -874,7 +874,7 @@ public abstract class RemoteClient {
 		if (content is not null) {
 			request.Content = JsonContent.Create(content, options: this.JsonOptions);
 		}
-		return this.ProcessWithTelemetryAsync(HttpMethod.Post.Method, endpoint, this.Client.SendAsync(request, cancellationToken));
+		return this.ProcessWithTelemetryAsync(HttpMethod.Post.Method, endpoint, () => this.Client.SendAsync(request, cancellationToken));
 	}
 
 	/// <summary>
@@ -887,7 +887,7 @@ public abstract class RemoteClient {
 		string endpoint,
 		CancellationToken cancellationToken = default) {
 		var request = new HttpRequestMessage(HttpMethod.Put, endpoint);
-		return this.ProcessWithTelemetryAsync(HttpMethod.Put.Method, endpoint, this.Client.SendAsync(request, cancellationToken));
+		return this.ProcessWithTelemetryAsync(HttpMethod.Put.Method, endpoint, () => this.Client.SendAsync(request, cancellationToken));
 	}
 
 	/// <summary>
@@ -904,7 +904,7 @@ public abstract class RemoteClient {
 		var request = new HttpRequestMessage(HttpMethod.Put, endpoint) {
 			Content = JsonContent.Create(content, options: this.JsonOptions)
 		};
-		return this.ProcessWithTelemetryAsync(HttpMethod.Put.Method, endpoint, this.Client.SendAsync(request, cancellationToken));
+		return this.ProcessWithTelemetryAsync(HttpMethod.Put.Method, endpoint, () => this.Client.SendAsync(request, cancellationToken));
 	}
 
 	/// <summary>
@@ -917,7 +917,7 @@ public abstract class RemoteClient {
 		string endpoint,
 		CancellationToken cancellationToken = default) {
 		var request = new HttpRequestMessage(HttpMethod.Patch, endpoint);
-		return this.ProcessWithTelemetryAsync(HttpMethod.Patch.Method, endpoint, this.Client.SendAsync(request, cancellationToken));
+		return this.ProcessWithTelemetryAsync(HttpMethod.Patch.Method, endpoint, () => this.Client.SendAsync(request, cancellationToken));
 	}
 
 	/// <summary>
@@ -934,7 +934,7 @@ public abstract class RemoteClient {
 		var request = new HttpRequestMessage(HttpMethod.Patch, endpoint) {
 			Content = JsonContent.Create(content, options: this.JsonOptions)
 		};
-		return this.ProcessWithTelemetryAsync(HttpMethod.Patch.Method, endpoint, this.Client.SendAsync(request, cancellationToken));
+		return this.ProcessWithTelemetryAsync(HttpMethod.Patch.Method, endpoint, () => this.Client.SendAsync(request, cancellationToken));
 	}
 
 	/// <summary>
@@ -946,7 +946,7 @@ public abstract class RemoteClient {
 	protected Task<Result> DeleteAsync(
 		string endpoint,
 		CancellationToken cancellationToken = default) =>
-		this.ProcessWithTelemetryAsync(HttpMethod.Delete.Method, endpoint, this.Client.DeleteAsync(endpoint, cancellationToken));
+		this.ProcessWithTelemetryAsync(HttpMethod.Delete.Method, endpoint, () => this.Client.DeleteAsync(endpoint, cancellationToken));
 
 	#endregion
 
@@ -1069,7 +1069,7 @@ public abstract class RemoteClient {
 		return this.ProcessWithTelemetryAsync(
 			HttpMethod.Head.Method,
 			endpoint,
-			this.Client.SendAsync(request, cancellationToken));
+			() => this.Client.SendAsync(request, cancellationToken));
 	}
 
 	#endregion
@@ -1083,14 +1083,14 @@ public abstract class RemoteClient {
 		string method,
 		string endpoint,
 		Func<HttpResponseMessage, CancellationToken, Task<T?>> contentProcessor,
-		Task<HttpResponseMessage> action,
+		Func<Task<HttpResponseMessage>> action,
 		CancellationToken cancellationToken) {
 		using var activity = RemoteClientTelemetry.StartActivity(method, endpoint, this.TypeName);
 		var startTimestamp = Timing.Start();
 
 		try {
 
-			var response = await this.ProcessResponseAsync(action);
+			var response = await this.ProcessResponseAsync(action());
 
 			// ERROR (technically should never be null)
 			if (response is null) {
@@ -1140,12 +1140,12 @@ public abstract class RemoteClient {
 	private async Task<Result> ProcessWithTelemetryAsync(
 		string method,
 		string endpoint,
-		Task<HttpResponseMessage> action) {
+		Func<Task<HttpResponseMessage>> action) {
 		using var activity = RemoteClientTelemetry.StartActivity(method, endpoint, this.TypeName);
 		var startTimestamp = Timing.Start();
 
 		try {
-			var response = await this.ProcessResponseAsync(action);
+			var response = await this.ProcessResponseAsync(action());
 			var elapsed = Timing.GetElapsedMilliseconds(startTimestamp);
 
 			// ERROR (technically should never be null)
@@ -1229,7 +1229,7 @@ public abstract class RemoteClient {
 	private Task<Result<T>> ProcessJsonAsResultAsync<T>(
 		string method,
 		string endpoint,
-		Task<HttpResponseMessage> action,
+		Func<Task<HttpResponseMessage>> action,
 		CancellationToken cancellationToken) {
 		return this.ProcessWithTelemetryAsync(
 			method,
@@ -1247,7 +1247,7 @@ public abstract class RemoteClient {
 	private Task<Result<string>> ProcessStringAsResultAsync(
 		string method,
 		string endpoint,
-		Task<HttpResponseMessage> action,
+		Func<Task<HttpResponseMessage>> action,
 		CancellationToken cancellationToken) {
 		return this.ProcessWithTelemetryAsync(
 			method,
@@ -1265,7 +1265,7 @@ public abstract class RemoteClient {
 	private Task<Result<Stream>> ProcessStreamAsResultAsync(
 		string method,
 		string endpoint,
-		Task<HttpResponseMessage> action,
+		Func<Task<HttpResponseMessage>> action,
 		CancellationToken cancellationToken) {
 		return this.ProcessWithTelemetryAsync(
 			method,
@@ -1283,7 +1283,7 @@ public abstract class RemoteClient {
 	private Task<Result<byte[]>> ProcessBytesAsResultAsync(
 	string method,
 	string endpoint,
-	Task<HttpResponseMessage> action,
+	Func<Task<HttpResponseMessage>> action,
 	CancellationToken cancellationToken) {
 		return this.ProcessWithTelemetryAsync(
 			method,
@@ -1301,7 +1301,7 @@ public abstract class RemoteClient {
 	private Task<Result<(byte[] Content, string FileName)>> ProcessFileAsResultAsync(
 		string method,
 		string endpoint,
-		Task<HttpResponseMessage> action,
+		Func<Task<HttpResponseMessage>> action,
 		CancellationToken cancellationToken) {
 		return this.ProcessWithTelemetryAsync<(byte[] Content, string FileName)>(
 			method,

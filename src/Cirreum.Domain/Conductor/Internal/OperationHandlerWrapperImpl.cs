@@ -104,10 +104,6 @@ internal sealed class OperationHandlerWrapperImpl<TOperation>
 		Exception? error = null,
 		bool canceled = false) {
 
-		if (activity is null) {
-			return;
-		}
-
 		var elapsed = Timing.GetElapsedMilliseconds(startTimestamp);
 
 		if (canceled) {

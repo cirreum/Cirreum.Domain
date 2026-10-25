@@ -19,19 +19,19 @@ internal static partial class RemoteClientTelemetry {
 
 	// Counters
 	private static readonly Counter<long> _requestCounter = _meter.CreateCounter<long>(
-		"remote_services.client.requests",
+		"cirreum.remote_services.client.requests",
 		description: "Total number of remote client requests");
 
 	private static readonly Counter<long> _requestFailedCounter = _meter.CreateCounter<long>(
-		"remote_services.client.requests.failed",
+		"cirreum.remote_services.client.requests.failed",
 		description: "Total number of failed remote client requests");
 
 	private static readonly Counter<long> _requestCanceledCounter = _meter.CreateCounter<long>(
-		"remote_services.client.requests.canceled",
+		"cirreum.remote_services.client.requests.canceled",
 		description: "Total number of canceled remote client requests");
 
 	private static readonly Histogram<double> _requestDuration = _meter.CreateHistogram<double>(
-		"remote_services.client.request.duration",
+		"cirreum.remote_services.client.request.duration",
 		unit: "ms",
 		description: "Remote client request duration in milliseconds");
 
@@ -92,7 +92,6 @@ internal static partial class RemoteClientTelemetry {
 		ILogger logger) {
 		RecordMetrics(
 			httpMethod,
-			endpoint,
 			clientType,
 			statusCode,
 			success: true,
@@ -112,7 +111,6 @@ internal static partial class RemoteClientTelemetry {
 		ILogger logger) {
 		RecordMetrics(
 			httpMethod,
-			endpoint,
 			clientType,
 			statusCode,
 			success: false,
@@ -132,7 +130,6 @@ internal static partial class RemoteClientTelemetry {
 		ILogger logger) {
 		RecordMetrics(
 			httpMethod,
-			endpoint,
 			clientType,
 			statusCode: null,
 			success: false,
@@ -145,7 +142,6 @@ internal static partial class RemoteClientTelemetry {
 
 	private static void RecordMetrics(
 		string httpMethod,
-		string endpoint,
 		string clientType,
 		int? statusCode,
 		bool success,
@@ -155,11 +151,7 @@ internal static partial class RemoteClientTelemetry {
 		var tags = new TagList
 		{
 			{ "http.request.method", httpMethod },
-			{ "url.path", endpoint },
 			{ "remote_services.client.type", clientType },
-			{ "remote_services.request.succeeded", success },
-			{ "remote_services.request.failed", !success && !canceled },
-			{ "remote_services.request.canceled", canceled },
 			{ "remote_services.request.status", canceled ? "canceled" : success ? "success" : "failure" }
 		};
 

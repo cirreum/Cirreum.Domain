@@ -48,22 +48,23 @@ internal sealed class DomainEventHandlerWrapperImpl<TDomainEvent>
 
 		// ----- 0. START TIMING & ACTIVITY -----
 		using var activity = DomainEventTelemetry.StartActivity(domainEventTypeName);
-		var startTimestamp = activity is not null ? Timing.Start() : 0L;
+		var startTimestamp = Timing.Start();
 		var effectiveStrategy = PublisherStrategy.Sequential;
 		var handlerCount = 0;
 
 		// Local function for recording telemetry
 		void RecordTelemetry(bool success, int count = 0, PublisherStrategy strategy = PublisherStrategy.Sequential, Exception? error = null, bool canceled = false) {
 
-			if (activity is null) {
-				return;
-			}
-
 			var elapsed = Timing.GetElapsedMilliseconds(startTimestamp);
 
 			if (canceled) {
 				DomainEventTelemetry.SetActivityCanceled(activity, (OperationCanceledException)error!);
-				DomainEventTelemetry.RecordCanceled(domainEventTypeName, elapsed, (OperationCanceledException)error!);
+				DomainEventTelemetry.RecordCanceled(
+					domainEventTypeName,
+					strategy,
+					count,
+					elapsed,
+					(OperationCanceledException)error!);
 			} else if (success) {
 				DomainEventTelemetry.SetActivitySuccess(activity);
 				DomainEventTelemetry.RecordSuccess(
