@@ -25,9 +25,9 @@ public static class GrantServiceCollectionExtensions {
 	/// <typeparam name="TGrantResolver">The app's grant-resolver implementation.</typeparam>
 	/// <param name="services">The <see cref="IServiceCollection"/> to register with.</param>
 	/// <param name="lifetime">
-	/// The lifetime of both the grant resolver and the orchestrator. Default is
-	/// <see cref="ServiceLifetime.Scoped"/> because grant lookups usually need a scoped
-	/// repository/DB context.
+	/// The lifetime of the grant resolver. Default is <see cref="ServiceLifetime.Scoped"/>
+	/// because grant lookups usually need a scoped repository/DB context. The orchestrator is
+	/// always <see cref="ServiceLifetime.Scoped"/>.
 	/// </param>
 	/// <returns>The <see cref="IServiceCollection"/> for chaining.</returns>
 	public static IServiceCollection AddOperationGrants<TGrantResolver>(
@@ -98,10 +98,8 @@ public static class GrantServiceCollectionExtensions {
 			implementationType: resolverType,
 			lifetime: lifetime));
 
-		services.Add(ServiceDescriptor.Describe(
-			serviceType: typeof(IOperationGrantFactory),
-			implementationType: typeof(OperationGrantFactory),
-			lifetime: lifetime));
+		// Scoped regardless of the resolver's lifetime: the factory's L1 cache is per request.
+		services.AddScoped<IOperationGrantFactory, OperationGrantFactory>();
 
 		// Shared infrastructure.
 		services.TryAddScoped<IOperationGrantAccessor, DefaultOperationGrantAccessor>();

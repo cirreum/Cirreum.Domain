@@ -5,7 +5,8 @@
 A review of Domain's instrumentation found three defects in what reached a metrics backend, one in
 how `RemoteClient` traces nest, and a naming scheme that no other Cirreum meter shares. The fixes
 change the series a dashboard sees, and so do the renames. Shipping them together means dashboards
-are reworked once.
+are reworked once. A follow-up test pass then found two defects outside telemetry —
+`RemoteClient.WithRetryAsync` and the grant orchestrator's lifetime — which ship here too.
 
 Nothing in this release changes a signature. Every public constant keeps its name.
 
@@ -72,6 +73,42 @@ return this.ProcessWithTelemetryAsync(method, endpoint, () => this.Client.SendAs
 | Recorded duration excluded the synchronous portion of the send | Duration covers the whole request |
 | A send that threw synchronously escaped `Result` handling | It is handled like any other request failure |
 
+## RemoteClient: `WithRetryAsync` returns its result
+
+`WithRetryAsync` was written for operations that throw. The `RemoteClient` verbs return a failed
+`Result` instead, so when every attempt failed, the exception the loop meant to rethrow had never
+been recorded:
+
+```csharp
+throw lastException!;   // lastException is null — throws NullReferenceException
+```
+
+It also retried every failed result, transient or not.
+
+| Case | Before | After |
+| ---- | ------ | ----- |
+| Every attempt fails transiently | `NullReferenceException` | The last failed `Result` |
+| 404, validation, or other non-transient failure | Retried with 1 s, 2 s, 4 s delays, then `NullReferenceException` | Returned at once |
+| Delay after the final attempt | Yes | No |
+| `maxAttempts` below 1 | `NullReferenceException` | `ArgumentOutOfRangeException` |
+
+A failed result is now treated like a thrown exception: retried when `IsTransient` returns `true` for
+its error and attempts remain. Override `IsTransient` to widen what counts as transient — an
+`ApiException` from a 503, for example.
+
+## Grants: the orchestrator is always scoped
+
+`AddOperationGrants<TResolver>(lifetime)` applied `lifetime` to both the resolver and
+`OperationGrantFactory`. The factory memoizes resolved grants in a plain dictionary meant to live for
+one request. Registered as a singleton, that dictionary lived for the process:
+
+* A revoked grant stayed granted until restart. Neither the L2 cache's expiry nor
+  `IOperationGrantCacheInvalidator` reaches the in-memory copy.
+* Concurrent requests read and wrote one unsynchronized `Dictionary`.
+
+The factory is now registered as scoped, and `lifetime` applies to the resolver only. A singleton
+resolver remains a supported choice.
+
 ## Instrument names
 
 Every other Cirreum meter names its instruments `cirreum.<area>.*` — `cirreum.authz.*`,
@@ -125,3 +162,8 @@ The `failed` and `canceled` booleans remain on the spans, where they mark the sp
   it does not trace at all. Neither reflects a change in traffic.
 * **Traces:** where `HttpClient` instrumentation is enabled, its span now nests under the
   `RemoteClient` span.
+* **`WithRetryAsync`:** a caller that relied on non-transient failures being retried should
+  override `IsTransient`. A caller that caught `NullReferenceException` now receives the failed
+  `Result`.
+* **`AddOperationGrants`:** no registration change is needed. A singleton resolver now sits behind
+  a scoped orchestrator, so revoked grants take effect on the next request.

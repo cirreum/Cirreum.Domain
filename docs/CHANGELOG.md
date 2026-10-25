@@ -71,6 +71,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and the recorded duration excluded the synchronous portion of the send. A request that threw
   synchronously also escaped the `Result` handling. The request is now started inside the span and
   the `try` block.
+- **`RemoteClient.WithRetryAsync` returns the last failed result instead of throwing
+  `NullReferenceException`.** The `RemoteClient` verbs return a failed `Result` rather than throwing,
+  so the exception the retry loop rethrew after its final attempt was never recorded, and
+  `throw lastException!` threw `null`. Both overloads also retried every failed result — a 404 or a
+  validation failure waited 1 s, 2 s, and 4 s, including a delay after the final attempt, before
+  failing. A failed result is now retried only when `IsTransient` returns `true` for its error,
+  there is no delay after the final attempt, and `maxAttempts` below 1 throws
+  `ArgumentOutOfRangeException`.
+- **`AddOperationGrants` registers the grant orchestrator as scoped whatever the resolver's
+  lifetime.** The `lifetime` argument applied to both the resolver and `OperationGrantFactory`, whose
+  in-memory grant cache is meant to last one request. With `ServiceLifetime.Singleton` that cache
+  lived for the process: a revoked grant stayed granted until restart, past any L2 expiry or
+  invalidation, and concurrent requests shared an unsynchronized dictionary. `lifetime` now applies to
+  the resolver only.
 
 ### Updated
 

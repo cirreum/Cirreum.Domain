@@ -14,11 +14,14 @@ using Microsoft.Extensions.Logging;
 /// </summary>
 internal static class AuthorizationTestHost {
 
-	public static ServiceProvider Build(TestUserState user) {
+	/// <param name="user">The fixed caller every dispatch sees.</param>
+	/// <param name="configure">Registrations applied before the domain pipeline, which skips what is already registered.</param>
+	public static ServiceProvider Build(TestUserState user, Action<IServiceCollection>? configure = null) {
 
 		var services = new ServiceCollection();
 		var configuration = new ConfigurationBuilder().Build();
 
+		configure?.Invoke(services);
 		services.AddLogging();
 		services.AddSingleton<IUserStateAccessor>(new FixedUserStateAccessor(user));
 		services.AddSingleton<IAuthorizationRoleRegistry>(sp => {

@@ -116,87 +116,81 @@ public abstract class RemoteClient {
 	/// <summary>
 	/// Executes an operation with retry logic using exponential backoff.
 	/// </summary>
+	/// <remarks>
+	/// A failed result or a thrown exception is retried when <see cref="IsTransient"/> returns
+	/// <see langword="true"/> for its error and attempts remain. The delay before attempt
+	/// <c>n + 1</c> is <c>2^(n - 1)</c> seconds.
+	/// </remarks>
 	/// <typeparam name="T">The return type of the operation.</typeparam>
 	/// <param name="operation">The operation to execute with retry logic.</param>
-	/// <param name="maxAttempts">Maximum number of retry attempts.</param>
+	/// <param name="maxAttempts">Maximum number of attempts, including the first. Must be at least 1.</param>
 	/// <param name="cancellationToken">Cancellation token for the operation.</param>
-	/// <returns>The result of the operation, or throws the last exception if all retries fail.</returns>
+	/// <returns>
+	/// The first successful result; otherwise the last failed result. An exception that is not
+	/// transient, or that is thrown by the final attempt, propagates.
+	/// </returns>
 	protected async Task<Result<T>> WithRetryAsync<T>(
 		Func<CancellationToken, Task<Result<T>>> operation,
 		int maxAttempts = 3,
 		CancellationToken cancellationToken = default) {
-		Exception? lastException = null;
+		ArgumentOutOfRangeException.ThrowIfLessThan(maxAttempts, 1);
 
-		for (var attempt = 0; attempt < maxAttempts; attempt++) {
+		for (var attempt = 1; ; attempt++) {
 			try {
 				var result = await operation(cancellationToken);
-				if (result.IsSuccess) {
+				if (result.IsSuccess || attempt == maxAttempts || !this.IsTransient(result.Error!)) {
 					return result;
 				}
-				var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt));
-				await Task.Delay(delay, cancellationToken);
-			} catch (Exception ex) when (attempt < maxAttempts - 1 && this.IsTransient(ex)) {
-				lastException = ex;
-				if (this.Logger.IsEnabled(LogLevel.Warning)) {
-					this.Logger.LogWarning(ex,
-					"Attempt {Attempt} of {MaxAttempts} failed, retrying...",
-					attempt + 1,
-					maxAttempts);
-				}
-
-				var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt));
-				await Task.Delay(delay, cancellationToken);
+				this.LogRetry(result.Error, attempt, maxAttempts);
+			} catch (Exception ex) when (attempt < maxAttempts && this.IsTransient(ex)) {
+				this.LogRetry(ex, attempt, maxAttempts);
 			}
+			await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt - 1)), cancellationToken);
 		}
-		if (this.Logger.IsEnabled(LogLevel.Error)) {
-			this.Logger.LogError(lastException,
-			"All {MaxAttempts} retry attempts failed",
-			maxAttempts);
-		}
-		throw lastException!;
 	}
 
 	/// <summary>
 	/// Executes an operation with retry logic using exponential backoff.
 	/// </summary>
+	/// <remarks>
+	/// A failed result or a thrown exception is retried when <see cref="IsTransient"/> returns
+	/// <see langword="true"/> for its error and attempts remain. The delay before attempt
+	/// <c>n + 1</c> is <c>2^(n - 1)</c> seconds.
+	/// </remarks>
 	/// <param name="operation">The operation to execute with retry logic.</param>
-	/// <param name="maxAttempts">Maximum number of retry attempts.</param>
+	/// <param name="maxAttempts">Maximum number of attempts, including the first. Must be at least 1.</param>
 	/// <param name="cancellationToken">Cancellation token for the operation.</param>
-	/// <returns>The result of the operation, or throws the last exception if all retries fail.</returns>
+	/// <returns>
+	/// The first successful result; otherwise the last failed result. An exception that is not
+	/// transient, or that is thrown by the final attempt, propagates.
+	/// </returns>
 	protected async Task<Result> WithRetryAsync(
 		Func<CancellationToken, Task<Result>> operation,
 		int maxAttempts = 3,
 		CancellationToken cancellationToken = default) {
-		Exception? lastException = null;
+		ArgumentOutOfRangeException.ThrowIfLessThan(maxAttempts, 1);
 
-		for (var attempt = 0; attempt < maxAttempts; attempt++) {
+		for (var attempt = 1; ; attempt++) {
 			try {
 				var result = await operation(cancellationToken);
-				if (result.IsSuccess) {
+				if (result.IsSuccess || attempt == maxAttempts || !this.IsTransient(result.Error!)) {
 					return result;
 				}
-				// Continue to next attempt
-				var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt));
-				await Task.Delay(delay, cancellationToken);
-			} catch (Exception ex) when (attempt < maxAttempts - 1 && this.IsTransient(ex)) {
-				lastException = ex;
-				if (this.Logger.IsEnabled(LogLevel.Warning)) {
-					this.Logger.LogWarning(ex,
-					"Attempt {Attempt} of {MaxAttempts} failed, retrying...",
-					attempt + 1,
-					maxAttempts);
-				}
-
-				var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt));
-				await Task.Delay(delay, cancellationToken);
+				this.LogRetry(result.Error, attempt, maxAttempts);
+			} catch (Exception ex) when (attempt < maxAttempts && this.IsTransient(ex)) {
+				this.LogRetry(ex, attempt, maxAttempts);
 			}
+			await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt - 1)), cancellationToken);
 		}
-		if (this.Logger.IsEnabled(LogLevel.Error)) {
-			this.Logger.LogError(lastException,
-			"All {MaxAttempts} retry attempts failed",
-			maxAttempts);
+	}
+
+	private void LogRetry(Exception? error, int attempt, int maxAttempts) {
+		if (this.Logger.IsEnabled(LogLevel.Warning)) {
+			this.Logger.LogWarning(error,
+				"Attempt {Attempt} of {MaxAttempts} failed, retrying...",
+				attempt,
+				maxAttempts);
 		}
-		throw lastException!;
 	}
 
 	/// <summary>
