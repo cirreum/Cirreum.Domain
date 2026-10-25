@@ -34,15 +34,3 @@ All are public and none is used:
   read; spans come from the shared `RemoteServicesClient` source.
 
 Delete outright and list each in that major's migration doc.
-
-### Seconds and fully qualified `error.type` across all Cirreum meters
-
-- **SemVer:** Minor
-- **Trigger:** a platform-wide telemetry pass covering every Cirreum meter at once.
-- **Noted:** 2026-10-25
-
-Every Cirreum duration histogram records in `ms`, and `error.type` records `GetType().Name`. The
-OpenTelemetry semantic conventions and the .NET built-in meters use `s` and the fully qualified
-type name. Changing one package alone would trade a convention mismatch for an internal one, so
-this moves with the other meters or not at all. A unit change ships under a new instrument name so
-existing queries go empty rather than read 1000× off.

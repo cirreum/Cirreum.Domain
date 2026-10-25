@@ -32,8 +32,10 @@ internal static partial class RemoteClientTelemetry {
 
 	private static readonly Histogram<double> _requestDuration = _meter.CreateHistogram<double>(
 		"cirreum.remote_services.client.request.duration",
-		unit: "ms",
-		description: "Remote client request duration in milliseconds");
+		unit: CirreumTelemetry.Histograms.DurationUnit,
+		description: "Remote client request duration",
+		tags: null,
+		advice: CirreumTelemetry.Histograms.DurationAdvice);
 
 	#region Activity Management (Distributed Tracing)
 
@@ -60,7 +62,7 @@ internal static partial class RemoteClientTelemetry {
 	internal static void SetActivityError(Activity? activity, Exception ex, int? statusCode = null) {
 		if (activity is not null) {
 			activity.SetStatus(ActivityStatusCode.Error, ex.Message);
-			activity.SetTag("error.type", ex.GetType().Name);
+			activity.SetTag("error.type", ex.GetType().FullName);
 			activity.SetTag("remote_services.request.failed", true);
 
 			if (statusCode.HasValue) {
@@ -116,7 +118,7 @@ internal static partial class RemoteClientTelemetry {
 			success: false,
 			canceled: false,
 			durationMs,
-			error.GetType().Name);
+			error.GetType().FullName);
 
 		logger.LogRequestFailed(error, httpMethod, endpoint, durationMs, statusCode);
 	}
@@ -135,7 +137,7 @@ internal static partial class RemoteClientTelemetry {
 			success: false,
 			canceled: true,
 			durationMs,
-			oce.GetType().Name);
+			oce.GetType().FullName);
 
 		logger.LogRequestCanceled(httpMethod, endpoint, durationMs);
 	}
@@ -164,7 +166,7 @@ internal static partial class RemoteClientTelemetry {
 		}
 
 		_requestCounter.Add(1, tags);
-		_requestDuration.Record(durationMs, tags);
+		_requestDuration.Record(durationMs / 1000, tags);
 
 		if (!success && !canceled) {
 			_requestFailedCounter.Add(1, tags);

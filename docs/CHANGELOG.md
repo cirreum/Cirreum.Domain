@@ -25,19 +25,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   | `conductor.operations.total` | `cirreum.conductor.operations` |
   | `conductor.operations.failed` | `cirreum.conductor.operations.failed` |
   | `conductor.operations.canceled` | `cirreum.conductor.operations.canceled` |
-  | `conductor.operations.duration` | `cirreum.conductor.operation.duration` |
+  | `conductor.operations.duration` (`ms`) | `cirreum.conductor.operation.duration` (`s`) |
   | `conductor.domain_events.total` | `cirreum.conductor.domain_events` |
   | `conductor.domain_events.failed` | `cirreum.conductor.domain_events.failed` |
   | `conductor.domain_events.no_handlers` | `cirreum.conductor.domain_events.no_handlers` |
-  | `conductor.domain_events.duration` | `cirreum.conductor.domain_event.duration` |
+  | `conductor.domain_events.duration` (`ms`) | `cirreum.conductor.domain_event.duration` (`s`) |
   | `remote_services.client.requests` | `cirreum.remote_services.client.requests` |
   | `remote_services.client.requests.failed` | `cirreum.remote_services.client.requests.failed` |
   | `remote_services.client.requests.canceled` | `cirreum.remote_services.client.requests.canceled` |
-  | `remote_services.client.request.duration` | `cirreum.remote_services.client.request.duration` |
+  | `remote_services.client.request.duration` (`ms`) | `cirreum.remote_services.client.request.duration` (`s`) |
+  | `cirreum.cache.duration` (`ms`) | `cirreum.cache.operation.duration` (`s`) |
 
   The `.total` suffix is dropped: a Prometheus exporter appends `_total` to counters, so the old
-  names exported as `…_total_total`. The `ConductorTelemetry` constants keep their names; their
-  values changed. Units are unchanged (`ms`). Cache instruments are unchanged.
+  names exported as `…_total_total`. Every duration histogram now records seconds, using the shared
+  unit and bucket boundaries from `CirreumTelemetry.Histograms`; a query on an old name returns
+  nothing rather than values 1000× off. The `ConductorTelemetry` and `CacheTelemetry` constants
+  keep their names; their values changed. `CacheTelemetry.RecordOperation` still takes
+  milliseconds. `cirreum.cache.operations` is unchanged.
+- **`error.type` records the fully qualified exception type** (`System.InvalidOperationException`,
+  was `InvalidOperationException`) on Conductor and `RemoteClient` spans and metrics, per the
+  OpenTelemetry semantic conventions.
 - **Domain-event tags are snake_case:** `domainEvent.type`, `.strategy`, `.handler_count`,
   `.status`, and `.canceled` are now `domain_event.*`. The publish span is named
   `Publish Domain Event` (was `Publish domainEvent`).
@@ -88,6 +95,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Updated
 
+- Re-pinned `Cirreum.Contracts` `6.0.1` → `6.1.0`, which brings `Cirreum.Kernel` `2.3.0` and its
+  `CirreumTelemetry.Histograms`.
 - Updated NuGet packages.
 
 ## [5.0.1] - 2026-08-29

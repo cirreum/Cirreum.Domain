@@ -29,8 +29,10 @@ internal static class OperationTelemetry {
 
 	private static readonly Histogram<double> _operationDuration = _meter.CreateHistogram<double>(
 		ConductorTelemetry.OperationsDurationHistogram,
-		unit: "ms",
-		description: "Operation processing duration in milliseconds");
+		unit: CirreumTelemetry.Histograms.DurationUnit,
+		description: "Operation processing duration",
+		tags: null,
+		advice: CirreumTelemetry.Histograms.DurationAdvice);
 
 	#region Activity Management (Distributed Tracing)
 
@@ -69,7 +71,7 @@ internal static class OperationTelemetry {
 	internal static void SetActivityError(Activity? activity, Exception ex) {
 		if (activity is not null) {
 			activity.SetStatus(ActivityStatusCode.Error, ex.Message);
-			activity.SetTag(ConductorTelemetry.ErrorTypeTag, ex.GetType().Name);
+			activity.SetTag(ConductorTelemetry.ErrorTypeTag, ex.GetType().FullName);
 			activity.SetTag(ConductorTelemetry.OperationFailedTag, true);
 			activity.AddException(ex);
 		}
@@ -121,7 +123,7 @@ internal static class OperationTelemetry {
 			success: false,
 			canceled: false,
 			durationMs,
-			error.GetType().Name);
+			error.GetType().FullName);
 	}
 
 	/// <summary>
@@ -139,7 +141,7 @@ internal static class OperationTelemetry {
 			success: false,
 			canceled: true,
 			durationMs,
-			oce.GetType().Name);
+			oce.GetType().FullName);
 	}
 
 	private static void RecordMetrics(
@@ -164,7 +166,7 @@ internal static class OperationTelemetry {
 		}
 
 		_operationCounter.Add(1, tags);
-		_operationDuration.Record(durationMs, tags);
+		_operationDuration.Record(durationMs / 1000, tags);
 
 		// NOTE: by design, "canceled" is NOT counted as a failed operation
 		if (!success && !canceled) {

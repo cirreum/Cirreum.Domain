@@ -120,21 +120,36 @@ exceptions.
 | `conductor.operations.total` | `cirreum.conductor.operations` |
 | `conductor.operations.failed` | `cirreum.conductor.operations.failed` |
 | `conductor.operations.canceled` | `cirreum.conductor.operations.canceled` |
-| `conductor.operations.duration` | `cirreum.conductor.operation.duration` |
+| `conductor.operations.duration` (`ms`) | `cirreum.conductor.operation.duration` (`s`) |
 | `conductor.domain_events.total` | `cirreum.conductor.domain_events` |
 | `conductor.domain_events.failed` | `cirreum.conductor.domain_events.failed` |
 | `conductor.domain_events.no_handlers` | `cirreum.conductor.domain_events.no_handlers` |
-| `conductor.domain_events.duration` | `cirreum.conductor.domain_event.duration` |
+| `conductor.domain_events.duration` (`ms`) | `cirreum.conductor.domain_event.duration` (`s`) |
 | `remote_services.client.requests` | `cirreum.remote_services.client.requests` |
 | `remote_services.client.requests.failed` | `cirreum.remote_services.client.requests.failed` |
 | `remote_services.client.requests.canceled` | `cirreum.remote_services.client.requests.canceled` |
-| `remote_services.client.request.duration` | `cirreum.remote_services.client.request.duration` |
+| `remote_services.client.request.duration` (`ms`) | `cirreum.remote_services.client.request.duration` (`s`) |
+| `cirreum.cache.duration` (`ms`) | `cirreum.cache.operation.duration` (`s`) |
 
 The `.total` suffix is gone. A Prometheus exporter appends `_total` to every counter, so
 `conductor.operations.total` exported as `conductor_operations_total_total`. The new counter
 exports as `cirreum_conductor_operations_total`.
 
-Durations stay in milliseconds, matching every other Cirreum meter.
+## Durations in seconds
+
+Every duration histogram now records seconds, following the OpenTelemetry semantic conventions and
+the .NET built-in meters (`http.server.request.duration` and its siblings are all `s`). This is part
+of a platform-wide move that starts in `Cirreum.Contracts` 6.1.0.
+
+* **Unit and buckets come from `CirreumTelemetry.Histograms`** in `Cirreum.Kernel` 2.3.0. The
+  OpenTelemetry SDK's default boundaries are sized for milliseconds; without these, nearly every
+  measurement would land in the first bucket.
+* **Every histogram that changed unit also changed name.** The Conductor and `RemoteClient`
+  histograms were already renamed above; the cache histogram moves from `cirreum.cache.duration` to
+  `cirreum.cache.operation.duration`. A query on an old name returns nothing rather than values
+  1000× off.
+* **Thresholds change scale:** a 250 ms alert is now `0.25`.
+* `CacheTelemetry.RecordOperation` still takes milliseconds and converts when it records.
 
 ## Tags
 
@@ -144,6 +159,7 @@ Durations stay in milliseconds, matching every other Cirreum meter.
 | Publish span renamed | `Publish domainEvent` → `Publish Domain Event`, matching `Dispatch Operation` |
 | Boolean outcome tags removed from metrics | `operation.succeeded` / `.failed` / `.canceled` and `remote_services.request.*` equivalents restated the status tag — filter on `operation.status` or `remote_services.request.status` |
 | Canceled domain events | now carry `domain_event.strategy` and `domain_event.handler_count` |
+| `error.type` is fully qualified | `InvalidOperationException` → `System.InvalidOperationException`, per the semantic conventions |
 
 The `failed` and `canceled` booleans remain on the spans, where they mark the span itself.
 

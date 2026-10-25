@@ -40,8 +40,8 @@ public static class CacheTelemetry {
 
 	// Metric names ———————————————————————————————————————————
 
-	/// <summary>Metric: cache operation duration in milliseconds.</summary>
-	public const string DurationMetric = "cirreum.cache.duration";
+	/// <summary>Metric: cache operation duration in seconds.</summary>
+	public const string DurationMetric = "cirreum.cache.operation.duration";
 
 	/// <summary>Metric: total cache operations (tagged with hit/miss).</summary>
 	public const string OperationsMetric = "cirreum.cache.operations";
@@ -53,8 +53,10 @@ public static class CacheTelemetry {
 
 	private static readonly Histogram<double> _durationHistogram = _meter.CreateHistogram<double>(
 		DurationMetric,
-		unit: "ms",
-		description: "Cache operation duration in milliseconds");
+		unit: CirreumTelemetry.Histograms.DurationUnit,
+		description: "Cache operation duration",
+		tags: null,
+		advice: CirreumTelemetry.Histograms.DurationAdvice);
 
 	private static readonly Counter<long> _operationsCounter = _meter.CreateCounter<long>(
 		OperationsMetric,
@@ -79,6 +81,6 @@ public static class CacheTelemetry {
 		};
 
 		_operationsCounter.Add(1, tags);
-		_durationHistogram.Record(durationMs, tags);
+		_durationHistogram.Record(durationMs / 1000, tags);
 	}
 }

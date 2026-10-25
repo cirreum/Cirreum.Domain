@@ -29,8 +29,10 @@ internal static class DomainEventTelemetry {
 
 	private static readonly Histogram<double> _domainEventDuration = _meter.CreateHistogram<double>(
 		ConductorTelemetry.DomainEventsDurationHistogram,
-		unit: "ms",
-		description: "Domain-event publishing duration in milliseconds");
+		unit: CirreumTelemetry.Histograms.DurationUnit,
+		description: "Domain-event publishing duration",
+		tags: null,
+		advice: CirreumTelemetry.Histograms.DurationAdvice);
 
 	#region Activity Management
 
@@ -51,7 +53,7 @@ internal static class DomainEventTelemetry {
 	internal static void SetActivityError(Activity? activity, Exception ex) {
 		if (activity is not null) {
 			activity.SetStatus(ActivityStatusCode.Error, ex.Message);
-			activity.SetTag(ConductorTelemetry.ErrorTypeTag, ex.GetType().Name);
+			activity.SetTag(ConductorTelemetry.ErrorTypeTag, ex.GetType().FullName);
 			activity.AddException(ex);
 		}
 	}
@@ -82,7 +84,7 @@ internal static class DomainEventTelemetry {
 		};
 
 		_domainEventCounter.Add(1, tags);
-		_domainEventDuration.Record(durationMs, tags);
+		_domainEventDuration.Record(durationMs / 1000, tags);
 	}
 
 	internal static void RecordFailure(
@@ -97,12 +99,12 @@ internal static class DomainEventTelemetry {
 			{ ConductorTelemetry.DomainEventStrategyTag, strategy.ToString() },
 			{ ConductorTelemetry.DomainEventHandlerCountTag, handlerCount },
 			{ ConductorTelemetry.DomainEventStatusTag, "failure" },
-			{ ConductorTelemetry.ErrorTypeTag, error.GetType().Name }
+			{ ConductorTelemetry.ErrorTypeTag, error.GetType().FullName }
 		};
 
 		_domainEventCounter.Add(1, tags);
 		_domainEventFailedCounter.Add(1, tags);
-		_domainEventDuration.Record(durationMs, tags);
+		_domainEventDuration.Record(durationMs / 1000, tags);
 	}
 
 	internal static void RecordCanceled(
@@ -117,11 +119,11 @@ internal static class DomainEventTelemetry {
 			{ ConductorTelemetry.DomainEventStrategyTag, strategy.ToString() },
 			{ ConductorTelemetry.DomainEventHandlerCountTag, handlerCount },
 			{ ConductorTelemetry.DomainEventStatusTag, "canceled" },
-			{ ConductorTelemetry.ErrorTypeTag, oce.GetType().Name }
+			{ ConductorTelemetry.ErrorTypeTag, oce.GetType().FullName }
 		};
 
 		_domainEventCounter.Add(1, tags);
-		_domainEventDuration.Record(durationMs, tags);
+		_domainEventDuration.Record(durationMs / 1000, tags);
 	}
 
 	internal static void RecordNoHandlers(string domainEventName) {
