@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.1.1] - 2026-10-26
+
 ### Updated
 
 - **`Cirreum.Contracts`** — `6.1.0` → `6.2.0`. Picks up host invocations (`IHostInvocationFactory`, `StartDetached`, the `Cirreum.Host` scheme).
